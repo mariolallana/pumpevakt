@@ -1,7 +1,9 @@
 // Handlers behind the Worker entry. Kept out of src/index.ts because the entry module may only
 // export handlers: workerd rejects plain named exports such as string constants.
+import { deliverPending, healthStillFailing, raiseHealthAlert } from './alerts';
 import { handleApi } from './api';
 import { handleFeedback } from './feedback';
+import { handleOwner } from './owner';
 import { jobHealth } from './core/health';
 import { recentRuns } from './db';
 import { runMarketJob } from './jobs/market';
@@ -31,6 +33,8 @@ export async function handleFetch(request: Request, env: Env): Promise<Response>
     if (request.method !== 'POST') return json({ error: { code: 'METHOD_NOT_ALLOWED', message: 'use POST' } }, 405);
     return handleFeedback(request, env);
   }
+  const owner = await handleOwner(request, env);
+  if (owner) return owner;
   const api = await handleApi(request, env);
   if (api) return api;
   if (request.method === 'GET' && url.pathname === '/health') {
@@ -46,8 +50,17 @@ export async function handleFetch(request: Request, env: Env): Promise<Response>
 }
 
 /** Dispatch by cron expression. Jobs never throw; they log and write a failed `runs` row instead. */
-export async function runScheduled(cron: string, env: Env): Promise<void> {
-  if (cron === PRICES_CRON) await runPricesJob(env);
-  else if (cron === MARKET_CRON) await runMarketJob(env);
-  else console.warn(`unknown cron "${cron}", nothing to do`);
+export async function runScheduled(cron: string, env: Env, now = new Date()): Promise<void> {
+  const job = cron === PRICES_CRON ? 'prices' : cron === MARKET_CRON ? 'market' : null;
+  if (job === 'prices') await runPricesJob(env, { now });
+  else if (job === 'market') await runMarketJob(env, { now });
+  else return console.warn(`unknown cron "${cron}", nothing to do`);
+  // Alerts after the job, kept apart so a broken alert path can never break data collection.
+  try {
+    await raiseHealthAlert(env, job, now);
+    const d = await deliverPending(env, { now, revalidate: (a) => healthStillFailing(env, a) });
+    if (d.sent + d.held + d.shadow + d.dropped > 0) console.log(`alerts ${JSON.stringify(d)}`);
+  } catch (e) {
+    console.error(`alerts failed: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }

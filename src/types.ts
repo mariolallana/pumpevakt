@@ -40,8 +40,12 @@ export interface Env {
   ALLOWED_CHAT_IDS?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
-  /** Secret for POST /api/feedback (wrangler secret put FEEDBACK_KEY). */
+  /** Owner secret for POST /api/feedback and /api/owner/* (wrangler secret put FEEDBACK_KEY). */
   FEEDBACK_KEY?: string;
+  /** Web push: public key (var, base64url), private key (secret, JWK JSON), contact URL (var). */
+  VAPID_PUBLIC_KEY?: string;
+  VAPID_PRIVATE_JWK?: string;
+  VAPID_SUBJECT?: string;
 }
 
 /** Project User-Agent sent to every source (docs/01 §2). */

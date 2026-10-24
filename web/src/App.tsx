@@ -20,7 +20,9 @@ import { HistoryChart } from './HistoryChart';
 import { OutlookCard } from './OutlookCard';
 import { ListSkeleton, StationList } from './StationList';
 import { FeedbackPanel } from './FeedbackPanel';
-import { feedbackKey } from './feedback';
+import { feedbackKey, saveFeedbackKey } from './feedback';
+import { AlarmsCard } from './AlarmsCard';
+import { ownerJson } from './alarms';
 
 const MapView = lazy(() => import('./MapView'));
 
@@ -45,7 +47,9 @@ export default function App() {
   const [outlook, setOutlook] = useState<OutlookResponse | null>(null);
   const [outlookLoading, setOutlookLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [fbKey] = useState<string | null>(() => feedbackKey());
+  const [fbKey, setFbKey] = useState<string | null>(() => feedbackKey());
+  const [keyDraft, setKeyDraft] = useState<string | null>(null); // null = the owner sign-in field is closed
+  const [keyError, setKeyError] = useState<string | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
 
   useEffect(() => {
@@ -283,7 +287,8 @@ export default function App() {
       </section>
 
       {fbKey && (
-        <div className="px-4 pb-4">
+        <div className="space-y-3 px-4 pb-4">
+          <AlarmsCard ownerKey={fbKey} />
           {noteOpen ? (
             <FeedbackPanel feedbackKey={fbKey} fuel={fuel} where={origin ?? undefined} onDone={() => setNoteOpen(false)} />
           ) : (
@@ -299,6 +304,46 @@ export default function App() {
         <a className="underline" href="https://openfreemap.org" target="_blank" rel="noopener noreferrer">OpenFreeMap</a>
         <span className="block pt-1">Wholesale index: FRED · Norges Bank.</span>
         <span className="block pt-1">Stale (&gt; 6 h) prices are greyed; prices older than 24 h are hidden.</span>
+        {!fbKey &&
+          (keyDraft === null ? (
+            <button type="button" onClick={() => setKeyDraft('')} className="mt-2 min-h-11 underline">
+              Owner? Enter your key
+            </button>
+          ) : (
+            <form
+              className="mt-2 flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const k = keyDraft.trim();
+                ownerJson(k, '/push')
+                  .then(() => {
+                    saveFeedbackKey(k);
+                    setFbKey(k);
+                    setKeyDraft(null);
+                  })
+                  .catch(() => setKeyError('That key didn’t work.'));
+              }}
+            >
+              <label className="sr-only" htmlFor="owner-key">
+                Owner key
+              </label>
+              <input
+                id="owner-key"
+                value={keyDraft}
+                onChange={(e) => {
+                  setKeyDraft(e.target.value);
+                  setKeyError(null);
+                }}
+                autoComplete="off"
+                className="min-h-11 min-w-0 flex-1 rounded-lg border border-line bg-surface px-2 text-sm text-ink"
+                placeholder="Owner key"
+              />
+              <button type="submit" className="min-h-11 rounded-lg border border-ink px-3 text-sm font-medium text-ink">
+                Save
+              </button>
+            </form>
+          ))}
+        {keyError && <span className="block pt-1 text-alert">{keyError}</span>}
       </footer>
     </div>
   );
