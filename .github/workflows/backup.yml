@@ -1,0 +1,46 @@
+name: backup
+
+# docs/09 Backups: weekly D1 export kept as a GitHub artifact for 90 days.
+# Encrypted (AES-256, passphrase in the BACKUP_PASSPHRASE secret) because the repo is public and the
+# database holds the owner's feedback locations. Restore:
+#   gpg --batch --decrypt --passphrase-file ~/.pumpevakt/backup-passphrase pumpevakt.sql.gz.gpg | gunzip > restore.sql
+#   npx wrangler d1 execute pumpevakt --remote --file restore.sql
+on:
+  schedule:
+    - cron: '0 3 * * 1' # Mondays 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Export D1
+        run: npx wrangler d1 export pumpevakt --remote --output pumpevakt.sql
+      - name: Encrypt
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          test -n "$BACKUP_PASSPHRASE"
+          echo "rows: $(grep -c '^INSERT' pumpevakt.sql)"
+          gzip -9 pumpevakt.sql
+          gpg --batch --yes --symmetric --cipher-algo AES256 --passphrase "$BACKUP_PASSPHRASE" --output pumpevakt.sql.gz.gpg pumpevakt.sql.gz
+          rm pumpevakt.sql.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pumpevakt-d1-${{ github.run_id }}
+          path: pumpevakt.sql.gz.gpg
+          retention-days: 90
+          if-no-files-found: error

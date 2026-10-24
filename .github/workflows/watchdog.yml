@@ -1,0 +1,34 @@
+name: watchdog
+
+# docs/09 Monitoring: catch a dead Worker or stalled jobs without a PC. A failed run makes GitHub email the
+# repo owner. Daily rather than weekly so a silent failure never lasts more than a day (docs/00 §5).
+on:
+  schedule:
+    - cron: '15 7 * * *' # 09:15 Oslo (summer), after the 06:30 UTC market job
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check /health
+        run: |
+          node --input-type=module -e '
+            const res = await fetch("https://pumpevakt.mariolallana.workers.dev/health");
+            if (!res.ok) throw new Error(`/health returned HTTP ${res.status}`);
+            const { jobs } = await res.json();
+            const hours = (iso) => (iso ? (Date.now() - Date.parse(iso)) / 3_600_000 : Infinity);
+            const problems = [];
+            for (const [job, maxH] of [["prices", 2], ["market", 30]]) {
+              const j = jobs[job];
+              console.log(`${job}: lastOk ${j.lastOk} (${hours(j.lastOk).toFixed(1)} h ago), consecutiveFailures ${j.consecutiveFailures}`);
+              if (hours(j.lastOk) > maxH) problems.push(`${job}: no successful run for ${hours(j.lastOk).toFixed(1)} h (limit ${maxH} h)`);
+              if (j.consecutiveFailures >= 2) problems.push(`${job}: ${j.consecutiveFailures} failed runs in a row (${j.lastError?.error ?? "?"})`);
+            }
+            if (problems.length) { console.error(problems.join("\n")); process.exit(1); }
+            console.log("healthy");
+          '
