@@ -162,3 +162,49 @@ function safeJson(s: string | null): Record<string, unknown> {
     return {};
   }
 }
+
+/**
+ * Latest price for `fuel` per active station inside a lat/lon box, newer than `sinceIso` (web v1 /api/stations).
+ * One indexed lookup per station (prices_station_fuel_time), ~150 stations, never a full prices scan.
+ */
+export async function latestStationPrices(
+  db: D1Database,
+  fuel: string,
+  sinceIso: string,
+  box: { minLat: number; maxLat: number; minLon: number; maxLon: number },
+): Promise<Array<{ id: string; name: string; brand: string | null; address: string | null; lat: number; lon: number; price: number; observedAt: string }>> {
+  const { results } = await db
+    .prepare(
+      `SELECT s.id, s.name, s.brand, s.address, s.lat, s.lon, p.price, p.observed_at AS observedAt
+       FROM stations s
+       JOIN prices p ON p.id = (SELECT q.id FROM prices q WHERE q.station_id = s.id AND q.fuel = ?1
+                                ORDER BY q.observed_at DESC, q.id DESC LIMIT 1)
+       WHERE s.active = 1 AND s.lat BETWEEN ?3 AND ?4 AND s.lon BETWEEN ?5 AND ?6 AND p.observed_at >= ?2`,
+    )
+    .bind(fuel, sinceIso, box.minLat, box.maxLat, box.minLon, box.maxLon)
+    .all<{ id: string; name: string; brand: string | null; address: string | null; lat: number; lon: number; price: number; observedAt: string }>();
+  return results;
+}
+
+/** Newest successful prices run: its Oslo level L, when it finished, and nFresh (read with json_extract, no JSON.parse). */
+export async function latestOkPricesRun(db: D1Database): Promise<{ level: number | null; at: string; nFresh: number | null } | null> {
+  const r = await db
+    .prepare(
+      `SELECT json_extract(detail, '$.level') AS level, json_extract(detail, '$.nFresh') AS nFresh,
+              COALESCE(finished_at, started_at) AS at
+       FROM runs WHERE job = 'prices' AND ok = 1 ORDER BY started_at DESC, id DESC LIMIT 1`,
+    )
+    .first<{ level: unknown; nFresh: unknown; at: string }>();
+  if (!r) return null;
+  const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  return { level: num(r.level), at: r.at, nFresh: num(r.nFresh) };
+}
+
+/** market_daily points of one series from `sinceDay` on (inclusive), ascending by day. */
+export async function marketSeries(db: D1Database, series: string, sinceDay: string): Promise<Array<{ day: string; value: number }>> {
+  const { results } = await db
+    .prepare(`SELECT day, value FROM market_daily WHERE series = ?1 AND day >= ?2 ORDER BY day ASC`)
+    .bind(series, sinceDay)
+    .all<{ day: string; value: number }>();
+  return results;
+}

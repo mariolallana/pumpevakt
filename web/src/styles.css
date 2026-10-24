@@ -1,0 +1,141 @@
+@import 'tailwindcss';
+
+/* "Nordic instrument panel" tokens (docs/06 §2). Light by default, dark via prefers-color-scheme. */
+:root {
+  --bg: #f6f7f5;
+  --surface: #ffffff;
+  --ink: #121516;
+  --ink-muted: #5e6668;
+  --cheap: #0f7b5f;
+  --pricey: #b4531a;
+  --alert: #c62d3a;
+  --line: #dfe3e1;
+  --neutral: #5e6668;
+  --focus: #1d5fd1;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1112;
+    --surface: #171b1d;
+    --ink: #ecefee;
+    --ink-muted: #9aa3a5;
+    --cheap: #3dd6a3;
+    --pricey: #f29a5c;
+    --alert: #ff6b76;
+    --line: #2a3033;
+    --neutral: #9aa3a5;
+    --focus: #8ab4ff;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--ink-muted);
+  --color-cheap: var(--cheap);
+  --color-pricey: var(--pricey);
+  --color-alert: var(--alert);
+  --color-line: var(--line);
+  --font-sans: 'Geist Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* Price pills on the map (HTML markers). Colour + arrow + text, never colour alone. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1.5px solid var(--surface);
+  background: var(--neutral);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+}
+.pill[data-tone='cheap'] {
+  background: var(--cheap);
+}
+.pill[data-tone='pricey'] {
+  background: var(--pricey);
+}
+@media (prefers-color-scheme: dark) {
+  /* Light pill fills in dark mode → dark text (neutral #9AA3A5 with #0E1112 is 7.4:1). */
+  .pill[data-tone='cheap'],
+  .pill[data-tone='pricey'],
+  .pill[data-tone='neutral'] {
+    color: #0e1112;
+  }
+}
+.pill[data-compact='true'] {
+  min-height: 0;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  justify-content: center;
+  font-size: 10px;
+  border-width: 1px;
+}
+/* Stale: greyed by colour (surface + muted ink, ≥ 5.8:1), dashed outline; arrow still shown. No opacity. */
+.pill[data-stale='true'] {
+  background: var(--surface);
+  color: var(--ink-muted);
+  border: 1.5px dashed var(--ink-muted);
+}
+.pill[aria-pressed='true'] {
+  outline: 3px solid var(--ink);
+  outline-offset: 1px;
+}
+.origin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--focus);
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--focus) 25%, transparent);
+}
+
+@keyframes shimmer {
+  0% { opacity: 0.55; }
+  50% { opacity: 1; }
+  100% { opacity: 0.55; }
+}
+.skeleton {
+  background: var(--line);
+  border-radius: 6px;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

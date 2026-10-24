@@ -12,6 +12,14 @@ migrations_dir = "db/migrations"
 [triggers]
 crons = ["*/30 * * * *", "30 6 * * *"]   # prices job (every 30 min), market/WDI job (daily 06:30 UTC)
 
+# Web v1: the Vite build (web/dist) is served as Workers static assets from this same Worker
+# (deliberate deviation from "Cloudflare Pages", see docs/spec-flaws-impl.md IMPL-W1). Run `npm run build:web` first.
+# /api/* and /health always run the Worker; any other unknown navigation falls back to index.html (SPA).
+[assets]
+directory = "web/dist"
+not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/health", "/__scheduled"]   # /__scheduled: wrangler dev --test-scheduled only (404 in production)
+
 [observability]
 enabled = true
 

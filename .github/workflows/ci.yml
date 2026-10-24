@@ -19,4 +19,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      # Build before testing so QA's bundle checks (test/qa/web-static.test.ts, QA-WEB-DIST-*) run in CI.
+      - run: npm run build:web
       - run: npm test

@@ -1,5 +1,6 @@
 // Handlers behind the Worker entry. Kept out of src/index.ts because the entry module may only
 // export handlers: workerd rejects plain named exports such as string constants.
+import { handleApi } from './api';
 import { jobHealth } from './core/health';
 import { recentRuns } from './db';
 import { runMarketJob } from './jobs/market';
@@ -25,6 +26,8 @@ const json = (body: unknown, status = 200): Response =>
 
 export async function handleFetch(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
+  const api = await handleApi(request, env);
+  if (api) return api;
   if (request.method === 'GET' && url.pathname === '/health') {
     try {
       return json(await healthBody(env));
@@ -32,6 +35,8 @@ export async function handleFetch(request: Request, env: Env): Promise<Response>
       return json({ error: e instanceof Error ? e.message : String(e) }, 500);
     }
   }
+  // Static files (web/dist) are served by Workers static assets before the Worker runs (wrangler.toml
+  // [assets]); only /api/*, /health and non-navigation asset misses reach this point.
   return new Response('Not found', { status: 404 });
 }
 
