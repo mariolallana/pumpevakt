@@ -28,7 +28,7 @@ export function StationList({ stations, refPrice, selectedId, onSelect, feedback
         const selected = s.id === selectedId;
         const brand = extraBrand(s.name, s.brand);
         // Stale rows are greyed by colour (--ink-muted), never by opacity, so they keep AA contrast.
-        const doubtful = s.stale || s.unconfirmed;
+        const doubtful = s.stale || s.unconfirmed || s.outdated;
         const valueTone = (t: keyof typeof toneClass) => (doubtful ? 'text-muted' : toneClass[t]);
         return (
           <Fragment key={s.id}>
@@ -44,7 +44,7 @@ export function StationList({ stations, refPrice, selectedId, onSelect, feedback
               type="button"
               onClick={() => onSelect(s.id)}
               aria-pressed={selected}
-              aria-label={`${i + 1}. ${s.name}${brand ? `, ${brand}` : ''}: ${price2(s.price)} kroner per litre, ${km(s.distanceKm)}, updated ${age(s.ageMinutes)}${s.stale ? ' (stale)' : ''}${s.unconfirmed ? ' (unconfirmed: far below other recent prices)' : ''}${d ? `, ${d.text}` : ''}${sv ? `, ${sv.text}` : ''}. Show on map`}
+              aria-label={`${i + 1}. ${s.name}${brand ? `, ${brand}` : ''}: ${price2(s.price)} kroner per litre, ${km(s.distanceKm)}, updated ${age(s.ageMinutes)}${s.outdated ? ' (old price from before today’s rise, probably higher now)' : s.stale ? ' (stale)' : ''}${s.unconfirmed ? ' (unconfirmed: far below other recent prices)' : ''}${d ? `, ${d.text}` : ''}${sv ? `, ${sv.text}` : ''}. Show on map`}
               className="flex min-h-[64px] min-w-0 flex-1 items-center gap-3 py-3 pl-4 pr-1 text-left"
             >
               <span className="w-[4.5rem] shrink-0">
@@ -56,7 +56,7 @@ export function StationList({ stations, refPrice, selectedId, onSelect, feedback
                 )}
               </span>
               <span className="min-w-0 flex-1">
-                <span className={`block truncate font-medium ${s.stale ? 'text-muted' : ''}`}>{s.name}</span>
+                <span className={`block truncate font-medium ${s.stale || s.outdated ? 'text-muted' : ''}`}>{s.name}</span>
                 {/* Distance never truncates; only the (non-duplicated) brand may. */}
                 <span className="flex min-w-0 text-sm text-muted">
                   <span className="num shrink-0">{km(s.distanceKm)}</span>
@@ -66,7 +66,7 @@ export function StationList({ stations, refPrice, selectedId, onSelect, feedback
               <span className="shrink-0 text-right">
                 {sv && <span className={`num block text-sm font-medium ${valueTone(sv.tone)}`}>{sv.text}</span>}
                 <span className={`num block text-xs ${doubtful ? 'font-medium text-alert' : 'text-muted'}`}>
-                  {s.stale ? 'stale · ' : s.unconfirmed ? 'unconfirmed · ' : ''}
+                  {s.outdated ? 'old price · ' : s.stale ? 'stale · ' : s.unconfirmed ? 'unconfirmed · ' : ''}
                   {age(s.ageMinutes)}
                 </span>
               </span>

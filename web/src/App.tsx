@@ -205,11 +205,11 @@ export default function App() {
             </span>
           )}
         </div>
-        {data && !error && data.coverage.jumpDetected && (
+        {data && !error && data.coverage.jumpDetected && data.coverage.outdated > 0 && (
           <p className="px-4 pb-1 text-xs text-muted">
-            Prices rose market-wide today. Showing <span className="num text-ink">{data.coverage.current}</span> of{' '}
-            <span className="num text-ink">{data.coverage.current + data.coverage.hiddenOutdated}</span> stations with a price
-            from after the rise; the rest are hidden until someone reports a new price.
+            Prices rose market-wide today. <span className="num text-ink">{data.coverage.outdated}</span> of{' '}
+            <span className="num text-ink">{data.coverage.current + data.coverage.outdated}</span> stations still show a price
+            from before the rise (marked “old price”, listed last): expect them to be higher at the pump.
           </p>
         )}
         {stations.length > 0 && !error && (

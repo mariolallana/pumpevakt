@@ -22,6 +22,7 @@ export interface StationItem {
   ageMinutes: number;
   stale: boolean;
   unconfirmed: boolean;
+  outdated: boolean;
   distanceKm: number;
   netSavingNok: number | null;
 }
@@ -32,7 +33,7 @@ export interface StationsResponse {
   radiusKm: number;
   refPrice: number | null;
   generatedAt: string;
-  coverage: { current: number; hiddenOutdated: number; jumpDetected: boolean };
+  coverage: { current: number; outdated: number; jumpDetected: boolean };
   stations: StationItem[];
 }
 

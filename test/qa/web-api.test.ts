@@ -612,7 +612,7 @@ describe('QA-API-E2E prices job → /api (real job, recorded + synthetic fixture
     for (const s of body.stations) {
       expect(s.price).toBeGreaterThanOrEqual(5);
       expect(s.ageMinutes).toBeLessThanOrEqual(24 * 60);
-      expect(s.netSavingNok).not.toBeNull();
+      if (!s.outdated) expect(s.netSavingNok).not.toBeNull(); // outdated rows claim no saving (F22)
     }
     const m = (await call('/api/market')).body;
     expect(m.latest.level).toBe(r.level!.median);

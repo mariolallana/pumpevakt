@@ -10,9 +10,21 @@ const minsAgo = (m: number) => now.getTime() - m * 60_000;
 describe('priceJump', () => {
   const recent = Array.from({ length: 12 }, (_, i) => ({ price: 27.5 + (i % 3) * 0.1, t: minsAgo(10 + i * 5) }));
 
-  it('recentMedian needs at least 10 prices from the last 2 h', () => {
+  it('recentMedian needs at least 10 prices', () => {
     expect(recentMedian(recent.slice(0, 9), now.getTime())).toBeNull();
     expect(recentMedian(recent, now.getTime())).toBeCloseTo(27.6, 5);
+  });
+
+  it('quiet evening: tops up to the 10 newest prices instead of switching off (F22)', () => {
+    // Only 3 reports in the last 2 h; the newest 10 are post-rise (~28), older ones pre-rise (~24.5).
+    const evening = [
+      ...Array.from({ length: 3 }, (_, i) => ({ price: 28.2, t: minsAgo(30 + i * 20) })),
+      ...Array.from({ length: 7 }, (_, i) => ({ price: 28.0, t: minsAgo(150 + i * 15) })),
+      ...Array.from({ length: 20 }, (_, i) => ({ price: 24.5, t: minsAgo(400 + i * 10) })),
+    ];
+    const med = recentMedian(evening, now.getTime());
+    expect(med).toBeCloseTo(28.0, 5);
+    expect(isOutdated({ price: 23.55, t: minsAgo(250) }, now.getTime(), med)).toBe(true);
   });
 
   it('flags old prices ≥ 1 kr below the recent median, keeps recent cheap ones', () => {
@@ -43,17 +55,21 @@ describe('jump-aware Oslo level and station list (2026-10-24 scenario)', () => {
   const opts = { fuel: 'diesel' as const, origin: { lat: 59.9111, lon: 10.7528 }, radiusKm: 10, now, osloLevel: 27.5, tankL: 50, consumptionL100: 6.5 };
   const toRows = (xs: typeof all) => xs.map((x) => ({ ...x.s, price: x.price, observedAt: new Date(x.t).toISOString() }));
 
-  it('hides pre-jump prices and reports coverage', () => {
+  it('keeps pre-jump prices visible but flagged outdated, listed last with no saving, and reports coverage', () => {
     const res = buildStations(toRows(all), opts);
-    expect(res.stations.some((s) => s.price === 24.4)).toBe(false);
-    expect(res.coverage).toEqual({ current: 16, hiddenOutdated: 25, jumpDetected: true });
+    const old = res.stations.filter((s) => s.price === 24.4);
+    expect(old).toHaveLength(25);
+    expect(old.every((s) => s.outdated && s.netSavingNok === null)).toBe(true);
+    expect(res.stations.slice(-25).every((s) => s.outdated)).toBe(true);
+    expect(res.stations.slice(0, 16).some((s) => s.outdated)).toBe(false);
+    expect(res.coverage).toEqual({ current: 16, outdated: 25, jumpDetected: true });
   });
 
   it('a lone recent price > 3 kr below the market is unconfirmed and ranked after confirmed ones', () => {
     const res = buildStations(toRows(all), opts);
     const b = res.stations.find((s) => s.id === 's200')!;
     expect(b.unconfirmed).toBe(true);
-    expect(res.stations.at(-1)!.id).toBe('s200');
+    expect(res.stations.filter((s) => !s.outdated).at(-1)!.id).toBe('s200');
     expect(res.stations.slice(0, 15).every((s) => !s.unconfirmed && s.price === 27.5)).toBe(true);
   });
 

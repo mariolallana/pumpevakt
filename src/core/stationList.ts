@@ -33,14 +33,16 @@ export interface StationItem {
   stale: boolean;
   /** Recent but implausibly cheap (> 3 kr below the recent market) with no nearby report agreeing. */
   unconfirmed: boolean;
+  /** Reported before today's market-wide rise: probably higher now. Listed last, no saving claimed. */
+  outdated: boolean;
   distanceKm: number;
   netSavingNok: number | null;
 }
 
-/** How many stations in the radius have a current price (pre-jump prices are hidden, not shown). */
+/** How many stations in the radius have a current price vs one from before a market-wide rise. */
 export interface Coverage {
   current: number;
-  hiddenOutdated: number;
+  outdated: number;
   jumpDetected: boolean;
 }
 
@@ -66,11 +68,13 @@ export interface BuildOpts {
 }
 
 const round2 = (x: number): number => Math.round(x * 100) / 100;
+/** Sort group: confirmed fresh 0, unconfirmed 1, stale 2, outdated 3. */
+const group = (s: StationItem): number => (s.outdated ? 3 : s.stale ? 2 : s.unconfirmed ? 1 : 0);
 
 /**
  * Keep prices ≤ 24 h old within `radiusKm` of `origin`, pick the reference price, compute net saving,
- * and sort: fresh (≤ 6 h) rows before stale ones (IMPL-W12, deviates from the contract's pure net-saving sort),
- * then net saving desc (nulls last), then price asc, then distance asc.
+ * and sort in groups — confirmed fresh, unconfirmed, stale (> 6 h, IMPL-W12), outdated (F22) — then
+ * net saving desc (nulls last), then price asc, then distance asc. Outdated rows get no net saving.
  *
  * refPrice: the Oslo level L for diesel when known, else the median of fresh (≤ 6 h) prices in the radius,
  * else null (then every netSavingNok is null).
@@ -87,7 +91,6 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
     .filter((p) => Number.isFinite(p.t) && nowMs - p.t <= maxAgeMs);
   const recentMed = recentMedian(placed, nowMs);
   const outdatedAreaWide = placed.filter((p) => isOutdated(p, nowMs, recentMed)).length;
-  let hiddenOutdated = 0;
 
   const kept: Array<Omit<StationItem, 'netSavingNok'> & { exactKm: number; ageMs: number }> = [];
   for (const r of rows) {
@@ -97,11 +100,6 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
     if (nowMs - t > maxAgeMs) continue;
     const exactKm = haversineKm(o.origin, r);
     if (exactKm > o.radiusKm) continue;
-    // Prices from before today's market-wide jump are hidden: an old number is worse than none.
-    if (isOutdated({ price: r.price, t }, nowMs, recentMed)) {
-      hiddenOutdated++;
-      continue;
-    }
     kept.push({
       id: r.id,
       name: r.name,
@@ -114,6 +112,7 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
       ageMinutes: Math.floor(ageMs / 60_000),
       stale: ageMs > staleMs,
       unconfirmed: isUnconfirmed({ id: r.id, lat: r.lat, lon: r.lon, price: r.price, t }, placed, nowMs, recentMed),
+      outdated: isOutdated({ price: r.price, t }, nowMs, recentMed),
       distanceKm: round2(exactKm),
       exactKm,
       ageMs,
@@ -121,16 +120,15 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
   }
 
   const level = o.fuel === 'diesel' && typeof o.osloLevel === 'number' && Number.isFinite(o.osloLevel) ? o.osloLevel : null;
-  const refPrice = level ?? median(kept.filter((k) => !k.stale && !k.unconfirmed).map((k) => k.price));
+  const refPrice = level ?? median(kept.filter((k) => !k.stale && !k.unconfirmed && !k.outdated).map((k) => k.price));
 
   const stations: StationItem[] = kept.map(({ exactKm: _e, ageMs: _a, ...k }) => ({
     ...k,
-    netSavingNok: refPrice === null ? null : netSavingNok(refPrice, k.price, k.distanceKm, o.tankL, o.consumptionL100),
+    netSavingNok: refPrice === null || k.outdated ? null : netSavingNok(refPrice, k.price, k.distanceKm, o.tankL, o.consumptionL100),
   }));
   stations.sort(
     (a, b) =>
-      // Confirmed fresh first, then unconfirmed, then stale.
-      Number(a.stale) * 2 + Number(a.unconfirmed) - (Number(b.stale) * 2 + Number(b.unconfirmed)) ||
+      group(a) - group(b) ||
       (b.netSavingNok ?? -Infinity) - (a.netSavingNok ?? -Infinity) ||
       a.price - b.price ||
       a.distanceKm - b.distanceKm ||
@@ -143,7 +141,11 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
     radiusKm: o.radiusKm,
     refPrice,
     generatedAt: o.now.toISOString(),
-    coverage: { current: stations.length, hiddenOutdated, jumpDetected: outdatedAreaWide >= 5 },
+    coverage: {
+      current: stations.filter((s) => !s.outdated).length,
+      outdated: stations.filter((s) => s.outdated).length,
+      jumpDetected: outdatedAreaWide >= 5,
+    },
     stations,
   };
 }
