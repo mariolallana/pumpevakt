@@ -1,0 +1,393 @@
+[
+ {
+  "id": "qafdonly000001",
+  "name": "FD only",
+  "brand": "QA Brand",
+  "location": {
+   "latitude": 59.92,
+   "longitude": 10.76,
+   "address": "Testveien 1, 0150 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": null,
+   "octane_price": null,
+   "diesel_price": null,
+   "fd_price": 20,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:00:00Z",
+   "updated_at": {
+    "fd_price": "2026-10-24 08:00:00.000Z"
+   }
+  },
+  "station_type": "road",
+  "is_active": true,
+  "closed": false
+ },
+ {
+  "id": "qafdboth000002",
+  "name": "FD and diesel",
+  "brand": "QA Brand",
+  "location": {
+   "latitude": 59.921,
+   "longitude": 10.761,
+   "address": "Testveien 1, 0150 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": null,
+   "octane_price": null,
+   "diesel_price": 24.1,
+   "fd_price": 19.9,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:00:00Z",
+   "updated_at": {
+    "diesel_price": "2026-10-24 08:00:00.000Z",
+    "fd_price": "2026-10-24 08:00:00.000Z"
+   }
+  },
+  "station_type": "road",
+  "is_active": true,
+  "closed": false
+ },
+ {
+  "id": "qanullall00003",
+  "name": "All null",
+  "brand": "QA Brand",
+  "location": {
+   "latitude": 59.922,
+   "longitude": 10.762,
+   "address": "Testveien 1, 0150 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": null,
+   "octane_price": null,
+   "diesel_price": null,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:00:00Z",
+   "updated_at": {}
+  },
+  "station_type": "road",
+  "is_active": true,
+  "closed": false
+ },
+ {
+  "id": "qanoupdated004",
+  "name": "No updated_at object",
+  "brand": "QA Brand",
+  "location": {
+   "latitude": 59.923,
+   "longitude": 10.763,
+   "address": "Testveien 1, 0150 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": null,
+   "octane_price": null,
+   "diesel_price": 24.2,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:00:00Z"
+  },
+  "station_type": "road",
+  "is_active": true,
+  "closed": false
+ },
+ {
+  "id": "qamissingkey05",
+  "name": "Missing per-fuel key",
+  "brand": "QA Brand",
+  "location": {
+   "latitude": 59.924,
+   "longitude": 10.764,
+   "address": "Testveien 1, 0150 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 26.3,
+   "octane_price": null,
+   "diesel_price": 24.3,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:00:00Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-24 08:00:00.000Z"
+   }
+  },
+  "station_type": "road",
+  "is_active": true,
+  "closed": false
+ },
+ {
+  "id": "qalowprice0006",
+  "name": "Typo low",
+  "brand": "QA Brand",
+  "location": {
+   "latitude": 59.925,
+   "longitude": 10.765,
+   "address": "Testveien 1, 0150 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": null,
+   "octane_price": null,
+   "diesel_price": 2.19,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:00:00Z",
+   "updated_at": {
+    "diesel_price": "2026-10-24 08:00:00.000Z"
+   }
+  },
+  "station_type": "road",
+  "is_active": true,
+  "closed": false
+ },
+ {
+  "id": "qahighprice007",
+  "name": "Typo high",
+  "brand": "QA Brand",
+  "location": {
+   "latitude": 59.926,
+   "longitude": 10.766,
+   "address": "Testveien 1, 0150 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": null,
+   "octane_price": null,
+   "diesel_price": 75,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:00:00Z",
+   "updated_at": {
+    "diesel_price": "2026-10-24 08:00:00.000Z"
+   }
+  },
+  "station_type": "road",
+  "is_active": true,
+  "closed": false
+ },
+ {
+  "id": "qastale0000008",
+  "name": "Stale",
+  "brand": "QA Brand",
+  "location": {
+   "latitude": 59.927,
+   "longitude": 10.767,
+   "address": "Testveien 1, 0150 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": null,
+   "octane_price": null,
+   "diesel_price": 22,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:00:00Z",
+   "updated_at": {
+    "diesel_price": "2026-10-20 08:00:00.000Z"
+   }
+  },
+  "station_type": "road",
+  "is_active": true,
+  "closed": false
+ },
+ {
+  "id": "qafar000000009",
+  "name": "Drammen far",
+  "brand": "QA Brand",
+  "location": {
+   "latitude": 59.744,
+   "longitude": 10.2045,
+   "address": "Testveien 1, 0150 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": null,
+   "octane_price": null,
+   "diesel_price": 23.5,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:00:00Z",
+   "updated_at": {
+    "diesel_price": "2026-10-24 08:00:00.000Z"
+   }
+  },
+  "station_type": "road",
+  "is_active": true,
+  "closed": false
+ },
+ {
+  "id": "qahvo000000010",
+  "name": "HVO only",
+  "brand": "QA Brand",
+  "location": {
+   "latitude": 59.928,
+   "longitude": 10.768,
+   "address": "Testveien 1, 0150 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": null,
+   "octane_price": null,
+   "diesel_price": null,
+   "fd_price": null,
+   "hvo100_price": 27.4,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:00:00Z",
+   "updated_at": {
+    "hvo100_price": "2026-10-24 08:00:00.000Z"
+   }
+  },
+  "station_type": "road",
+  "is_active": true,
+  "closed": false
+ },
+ {
+  "id": "j1i4da8bf8wkcql",
+  "name": "Fredensborg",
+  "brand": "Uno X",
+  "location": {
+   "latitude": 59.92082191643188,
+   "longitude": 10.75106396077194,
+   "address": "Maridalsveien 10, 0178 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 25.75,
+   "octane_price": 25.95,
+   "diesel_price": 24.77,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T07:26:46Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-24 07:26:46.000Z",
+    "diesel_price": "2026-10-24 07:26:46.000Z",
+    "octane_price": "2026-10-12 05:34:30.059Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 0,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/1a4ese2pswjfp19/uno_x_ppf9f3vu9b.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "1a4ese2pswjfp19",
+    "logo": "uno_x_ppf9f3vu9b.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "Uno X",
+    "pr": "",
+    "primary": "Uno X",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 444,
+  "created": "2023-04-04T16:54:44.627000Z",
+  "updated": "2026-10-21T12:09:06.748000Z"
+ }
+]

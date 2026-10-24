@@ -1,0 +1,28 @@
+name = "pumpevakt"
+main = "src/index.ts"
+compatibility_date = "2026-04-20"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pumpevakt"
+# Created 2026-10-24 (region EEUR).
+database_id = "925a17b7-2e1f-4eaf-a0ab-ad77e0e4b123"
+migrations_dir = "db/migrations"
+
+[triggers]
+crons = ["*/30 * * * *", "30 6 * * *"]   # prices job (every 30 min), market/WDI job (daily 06:30 UTC)
+
+[observability]
+enabled = true
+
+# Single-user config (docs/03 · Config). Example values; edit to taste.
+# Secrets (Phase 2): `wrangler secret put TELEGRAM_BOT_TOKEN` and `wrangler secret put TELEGRAM_WEBHOOK_SECRET`.
+[vars]
+HOME_LAT = "59.93"
+HOME_LON = "10.80"
+FUEL = "diesel"
+TANK_L = "50"
+CONSUMPTION_L100 = "6.5"
+SENSITIVITY = "normal"
+QUIET_HOURS = "22-07"
+ALLOWED_CHAT_IDS = "123456789"

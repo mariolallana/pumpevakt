@@ -1,0 +1,2001 @@
+[
+ {
+  "id": "j1i4da8bf8wkcql",
+  "name": "Fredensborg",
+  "brand": "Uno X",
+  "location": {
+   "latitude": 59.92082191643188,
+   "longitude": 10.75106396077194,
+   "address": "Maridalsveien 10, 0178 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 25.75,
+   "octane_price": 25.95,
+   "diesel_price": 24.77,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T07:26:46Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-24 07:26:46.000Z",
+    "diesel_price": "2026-10-24 07:26:46.000Z",
+    "octane_price": "2026-10-12 05:34:30.059Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 0,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/1a4ese2pswjfp19/uno_x_ppf9f3vu9b.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "1a4ese2pswjfp19",
+    "logo": "uno_x_ppf9f3vu9b.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "Uno X",
+    "pr": "",
+    "primary": "Uno X",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 444,
+  "created": "2023-04-04T16:54:44.627000Z",
+  "updated": "2026-10-21T12:09:06.748000Z"
+ },
+ {
+  "id": "mw85fkdf8cq9b5n",
+  "name": "Trondheimsveien",
+  "brand": "Esso",
+  "location": {
+   "latitude": 59.92231310683759,
+   "longitude": 10.771215797978972,
+   "address": "Trondheimsveien 61, 0560 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 27.7,
+   "octane_price": 18.66,
+   "diesel_price": 26.15,
+   "fd_price": null,
+   "hvo100_price": 23.67,
+   "e10_price": null,
+   "last_updated": "2026-10-24T07:04:34Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-23 21:22:16.000Z",
+    "octane_price": "2026-09-14 19:20:38.000Z",
+    "diesel_price": "2026-10-24 07:04:34.000Z",
+    "hvo100_price": "2026-10-23 21:22:16.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 22970280,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/b3vklilt0z4tdnv/esso_auxiqz42ux.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "b3vklilt0z4tdnv",
+    "logo": "esso_auxiqz42ux.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "Esso",
+    "pr": "",
+    "primary": "Esso",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 1566,
+  "created": "2023-04-04T16:54:30.445000Z",
+  "updated": "2026-10-24T10:42:24.645000Z"
+ },
+ {
+  "id": "yof1t4kxboxd6b1",
+  "name": "Kongshavn",
+  "brand": "ST1",
+  "location": {
+   "latitude": 59.896429,
+   "longitude": 10.753942,
+   "address": "Mosseveien 59 / Kongshavnveien OSL..",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 26.16,
+   "octane_price": 28.75,
+   "diesel_price": null,
+   "fd_price": null,
+   "hvo100_price": 20.8,
+   "e10_price": null,
+   "last_updated": "2026-10-23T14:53:50Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-23 14:53:50.000Z",
+    "octane_price": "2026-10-23 14:53:41.000Z",
+    "hvo100_price": "2026-10-23 14:53:41.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 0,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/nwivulbf2qcignz/st_1_w5x63xccyl.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "nwivulbf2qcignz",
+    "logo": "st_1_w5x63xccyl.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "ST1",
+    "pr": "",
+    "primary": "ST1",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 7,
+  "created": "2026-03-10T21:52:30Z",
+  "updated": "2026-10-22T06:24:56.260000Z"
+ },
+ {
+  "id": "pzi8gsc9sy2796w",
+  "name": "Kiellands Plass",
+  "brand": "Circle K",
+  "location": {
+   "latitude": 59.92873221882244,
+   "longitude": 10.749888330376983,
+   "address": "Uelands gate 55, 0175 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 27.15,
+   "octane_price": null,
+   "diesel_price": 24.1,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T07:24:12Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-24 07:24:12.000Z",
+    "diesel_price": "2026-10-24 07:24:12.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 22809850,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/4lifm3pf8xx1qfu/circle_k_6f6b22y9u5.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "4lifm3pf8xx1qfu",
+    "logo": "circle_k_6f6b22y9u5.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "Circle K",
+    "pr": "",
+    "primary": "Circle K",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 1365,
+  "created": "2023-04-04T16:53:48.726000Z",
+  "updated": "2026-10-24T10:42:24.522000Z"
+ },
+ {
+  "id": "iyu9081651bbrj2",
+  "name": "Etterstad",
+  "brand": "ST1",
+  "location": {
+   "latitude": 59.910704316099476,
+   "longitude": 10.791302090918238,
+   "address": "Ensjøveien 35, 0661 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 26.74,
+   "octane_price": 21.87,
+   "diesel_price": 23.78,
+   "fd_price": null,
+   "hvo100_price": 24.39,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:28:44Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-24 08:27:26.000Z",
+    "octane_price": "2026-09-14 21:56:00.000Z",
+    "diesel_price": "2026-10-24 08:27:26.000Z",
+    "hvo100_price": "2026-10-24 08:28:44.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 22261992,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/nwivulbf2qcignz/st_1_w5x63xccyl.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "nwivulbf2qcignz",
+    "logo": "st_1_w5x63xccyl.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "ST1",
+    "pr": "",
+    "primary": "ST1",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 1654,
+  "created": "2023-04-04T16:53:02.584000Z",
+  "updated": "2026-10-24T10:12:23.100000Z"
+ },
+ {
+  "id": "lpjhuy7zx3u0ntr",
+  "name": "Filipstad",
+  "brand": "YX Truck",
+  "location": {
+   "latitude": 59.909078,
+   "longitude": 10.714305,
+   "address": "Filipstadveien 9-13, 0250 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 30.65,
+   "octane_price": null,
+   "diesel_price": null,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-22T14:59:00Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-22 14:59:00.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 0,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/chpswf83xw1ptqt/yx_truck_mqmc135qjh.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "chpswf83xw1ptqt",
+    "logo": "yx_truck_mqmc135qjh.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "YX Truck",
+    "pr": "",
+    "primary": "YX Truck",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 8,
+  "created": "2026-03-10T21:52:29Z",
+  "updated": "2026-10-20T10:11:26.585000Z"
+ },
+ {
+  "id": "snup3hkp8u32zb7",
+  "name": "Kværner",
+  "brand": "ST1",
+  "location": {
+   "latitude": 59.90147045081218,
+   "longitude": 10.790237923233565,
+   "address": "Konows gate 77, 0196 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 28.71,
+   "octane_price": 20.09,
+   "diesel_price": 24.23,
+   "fd_price": null,
+   "hvo100_price": 25.4,
+   "e10_price": null,
+   "last_updated": "2026-10-24T00:40:33Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-23 21:28:32.000Z",
+    "octane_price": "2026-09-14 20:14:22.000Z",
+    "diesel_price": "2026-10-24 00:40:33.000Z",
+    "hvo100_price": "2026-10-24 00:40:33.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 0,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/nwivulbf2qcignz/st_1_w5x63xccyl.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "nwivulbf2qcignz",
+    "logo": "st_1_w5x63xccyl.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "ST1",
+    "pr": "",
+    "primary": "ST1",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 5,
+  "created": "2026-03-10T21:52:31Z",
+  "updated": "2026-10-23T01:22:34.061000Z"
+ },
+ {
+  "id": "ytw0p48cs9n647x",
+  "name": "Trondheimsveien",
+  "brand": "Circle K Automat",
+  "location": {
+   "latitude": 59.92891722449965,
+   "longitude": 10.777022060936794,
+   "address": "Trondheimsveien 154, 0569 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 26.43,
+   "octane_price": null,
+   "diesel_price": 24.75,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T06:59:14Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-24 06:59:14.000Z",
+    "diesel_price": "2026-10-24 06:59:14.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 0,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/l8p7rzetvd3o57e/circle_k_automat_ntw4pixukh.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "l8p7rzetvd3o57e",
+    "logo": "circle_k_automat_ntw4pixukh.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "Circle K Automat",
+    "pr": "",
+    "primary": "Circle K Automat",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 6,
+  "created": "2026-03-10T21:52:31Z",
+  "updated": "2026-10-22T08:13:07.407000Z"
+ },
+ {
+  "id": "k1op4g9mza266bh",
+  "name": "Frogner",
+  "brand": "ST1",
+  "location": {
+   "latitude": 59.918021161362425,
+   "longitude": 10.709204816099684,
+   "address": "Frederik Stangs gate 39, 0264 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 25.91,
+   "octane_price": 20.27,
+   "diesel_price": 23.07,
+   "fd_price": null,
+   "hvo100_price": 26.75,
+   "e10_price": null,
+   "last_updated": "2026-10-24T07:16:25Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-24 07:16:25.000Z",
+    "octane_price": "2026-09-14 15:13:30.000Z",
+    "diesel_price": "2026-10-24 07:16:25.000Z",
+    "hvo100_price": "2026-10-23 18:07:32.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 0,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/nwivulbf2qcignz/st_1_w5x63xccyl.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "nwivulbf2qcignz",
+    "logo": "st_1_w5x63xccyl.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "ST1",
+    "pr": "",
+    "primary": "ST1",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 20,
+  "created": "2026-03-10T21:52:29Z",
+  "updated": "2026-10-23T01:38:49.164000Z"
+ },
+ {
+  "id": "jd6gdemb788paqd",
+  "name": "Kirkeveien",
+  "brand": "Automat 1",
+  "location": {
+   "latitude": 59.93535851337716,
+   "longitude": 10.743937507765416,
+   "address": "Kirkeveien 172, 0455 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 27,
+   "octane_price": null,
+   "diesel_price": 23.39,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-23T20:17:19Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-23 20:17:19.000Z",
+    "diesel_price": "2026-10-23 20:17:19.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 80032020,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/qzqc208f7jjeesn/automat_1_wp1r8dsziu.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "qzqc208f7jjeesn",
+    "logo": "automat_1_wp1r8dsziu.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "Automat 1",
+    "pr": "",
+    "primary": "Automat 1",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 1473,
+  "created": "2023-04-04T16:55:27.518000Z",
+  "updated": "2026-10-24T10:42:24.350000Z"
+ },
+ {
+  "id": "ohbvhgro31z85n3",
+  "name": "Storo",
+  "brand": "Circle K Automat",
+  "location": {
+   "latitude": 59.94617236337863,
+   "longitude": 10.776230483344754,
+   "address": "Vitaminveien 1B, 0485 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 27.08,
+   "octane_price": null,
+   "diesel_price": 24.58,
+   "fd_price": 24.74,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2026-10-24T08:27:36Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-23 20:55:19.000Z",
+    "diesel_price": "2026-10-24 08:27:36.000Z",
+    "fd_price": "2026-09-14 21:42:46.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 0,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/l8p7rzetvd3o57e/circle_k_automat_ntw4pixukh.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "l8p7rzetvd3o57e",
+    "logo": "circle_k_automat_ntw4pixukh.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "Circle K Automat",
+    "pr": "",
+    "primary": "Circle K Automat",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 13,
+  "created": "2026-03-10T21:52:32Z",
+  "updated": "2026-10-22T04:47:30.399000Z"
+ },
+ {
+  "id": "ld3iwqcvldwdo6k",
+  "name": "Ulven",
+  "brand": "DRIV",
+  "location": {
+   "latitude": 59.92585391393534,
+   "longitude": 10.820519961281489,
+   "address": "Knud Bryns vei 10, Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 30.63,
+   "octane_price": 28.09,
+   "diesel_price": 21.59,
+   "fd_price": 22.34,
+   "hvo100_price": 22.63,
+   "e10_price": null,
+   "last_updated": "2026-10-23T23:00:01Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-22 22:29:45.000Z",
+    "octane_price": "2026-10-23 23:00:01.000Z",
+    "diesel_price": "2026-09-14 05:44:58.000Z",
+    "hvo100_price": "2026-10-23 23:00:01.000Z",
+    "fd_price": "2026-09-14 05:44:58.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 0,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/8lk7qrbb2t5kfog/driv_qf90svm6ga.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "8lk7qrbb2t5kfog",
+    "logo": "driv_qf90svm6ga.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "DRIV",
+    "pr": "",
+    "primary": "DRIV",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 10,
+  "created": "2026-03-10T21:52:33Z",
+  "updated": "2026-10-23T10:39:16.539000Z"
+ },
+ {
+  "id": "99wl69d364dilyf",
+  "name": "Nordstrand",
+  "brand": "Circle K",
+  "location": {
+   "latitude": 59.87118099765031,
+   "longitude": 10.806742181471433,
+   "address": "Oberst Rodes vei 39B, 1152 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 25.65,
+   "octane_price": 21.43,
+   "diesel_price": 23.45,
+   "fd_price": 22.43,
+   "hvo100_price": 27.13,
+   "e10_price": null,
+   "last_updated": "2026-10-23T16:32:07Z",
+   "updated_at": {
+    "gasoline_price": "2026-10-23 16:32:07.000Z",
+    "octane_price": "2026-10-22 17:40:47.000Z",
+    "diesel_price": "2026-10-23 12:21:09.000Z",
+    "hvo100_price": "2026-09-14 13:10:11.000Z",
+    "fd_price": "2026-09-14 13:10:11.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 0,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": "https://drivstoffapp-db.valiantlynx.com/api/files/pbc_4040973964/4lifm3pf8xx1qfu/circle_k_6f6b22y9u5.png",
+  "station_type": "road",
+  "expand": {
+   "chain": {
+    "app": false,
+    "bedrift": false,
+    "board_color_rules": null,
+    "collectionId": "pbc_4040973964",
+    "collectionName": "vendor_chain",
+    "id": "4lifm3pf8xx1qfu",
+    "logo": "circle_k_6f6b22y9u5.png",
+    "mastercard": false,
+    "mat": false,
+    "name": "Circle K",
+    "pr": "",
+    "primary": "Circle K",
+    "privat": false
+   },
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 6,
+  "created": "2026-03-10T21:52:31Z",
+  "updated": "2026-10-22T16:33:19.541000Z"
+ },
+ {
+  "id": "kbibjumyxdvad7p",
+  "name": "Circle K E6 Berger",
+  "brand": null,
+  "location": {
+   "latitude": 59.9222241,
+   "longitude": 10.7066491,
+   "address": "Bølervegen 34, 2016 Frogner",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 18.04,
+   "octane_price": 21.45,
+   "diesel_price": 21.34,
+   "fd_price": 21.49,
+   "hvo100_price": 27.13,
+   "e10_price": null,
+   "last_updated": "2026-04-30T19:37:21.096000Z",
+   "updated_at": {
+    "gasoline_price": "2026-04-30 19:37:21.096Z",
+    "octane_price": "2026-04-30 19:37:21.096Z",
+    "diesel_price": "2026-04-30 19:37:21.096Z",
+    "hvo100_price": "2026-04-30 19:37:21.096Z",
+    "fd_price": "2026-04-30 19:37:21.096Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 22124212,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": null,
+  "station_type": "road",
+  "expand": {
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:17:22.012Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Innlandet",
+    "id": "9atw7bwlbhbzq9s",
+    "image": "9atw7bwlbhbzq9s_8320qoo24s.jpg",
+    "img_link": "",
+    "lat": 59.9344845,
+    "lng": 10.7089418,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Fron",
+    "parent_po_number": 3436,
+    "po_number": 0,
+    "population": 0,
+    "primary": "",
+    "resident": "frøning",
+    "searches": 0,
+    "updated": "2024-07-14 00:42:41.060Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 395,
+  "created": "2023-04-04T16:52:43.855000Z",
+  "updated": "2026-10-21T05:17:52.575000Z"
+ },
+ {
+  "id": "4tvpr362xgmcw07",
+  "name": "Shell Marienlyst",
+  "brand": null,
+  "location": {
+   "latitude": 59.93244538679795,
+   "longitude": 10.722056922528132,
+   "address": "Kirkeveien 92, 0361 Oslo",
+   "country": null
+  },
+  "prices": {
+   "gasoline_price": 20.49,
+   "octane_price": null,
+   "diesel_price": 20.35,
+   "fd_price": null,
+   "hvo100_price": null,
+   "e10_price": null,
+   "last_updated": "2025-11-12T11:34:35Z",
+   "updated_at": {
+    "gasoline_price": "2025-11-12 11:34:35.000Z",
+    "diesel_price": "2025-11-12 11:34:35.000Z"
+   }
+  },
+  "amenities": {
+   "services": null,
+   "amenities": null,
+   "opening_hours": null,
+   "phone": 22490307,
+   "rating": null,
+   "review_count": null
+  },
+  "description": "",
+  "logo": null,
+  "station_type": "road",
+  "expand": {
+   "city": {
+    "about": "",
+    "collectionId": "pbc_1984470507",
+    "collectionName": "cities",
+    "created": "2023-08-09 08:18:07.613Z",
+    "expand": {
+     "municipality": {
+      "code": "0301",
+      "collectionId": "pbc_1377752910",
+      "collectionName": "municipalities",
+      "county": "7twnfaw2ecdmb5i",
+      "expand": {
+       "county": {
+        "code": "03",
+        "collectionId": "pbc_163983738",
+        "collectionName": "counties",
+        "country": "v2f8knzlloddk2q",
+        "expand": {
+         "country": {
+          "code": "NO",
+          "collectionId": "pbc_961350965",
+          "collectionName": "countries",
+          "currency": "NOK",
+          "id": "v2f8knzlloddk2q",
+          "language": "nb",
+          "name": "Norway",
+          "name_key": "filters.countries.norway"
+         }
+        },
+        "id": "7twnfaw2ecdmb5i",
+        "name": "Oslo - Oslove"
+       }
+      },
+      "id": "skaslrvbm3bn8vw",
+      "lat": 0,
+      "lng": 0,
+      "name": "Oslo"
+     }
+    },
+    "fylke": "Oslo",
+    "id": "0c7dm1b0qzjbx0o",
+    "image": "oslo_urwwrei70l.svg",
+    "img_link": "https://kommune.vercel.app/kommuner-images/Oslo.svg",
+    "lat": 59.9133301,
+    "lng": 10.7389701,
+    "merknad": "",
+    "municipality": "skaslrvbm3bn8vw",
+    "name": "Oslo",
+    "parent_po_number": 0,
+    "po_number": 301,
+    "population": 0,
+    "primary": "",
+    "resident": "oslokvinne/oslomann/osloensar/-er",
+    "searches": 0,
+    "updated": "2023-11-03 22:20:37.102Z"
+   },
+   "country": {
+    "code": "NO",
+    "collectionId": "pbc_961350965",
+    "collectionName": "countries",
+    "currency": "NOK",
+    "id": "v2f8knzlloddk2q",
+    "language": "nb",
+    "name": "Norway",
+    "name_key": "filters.countries.norway"
+   }
+  },
+  "country_code": "NO",
+  "currency": "NOK",
+  "has_electric": false,
+  "has_wash": false,
+  "has_gas": false,
+  "is_truck_friendly": false,
+  "is_company_car_or_van_friendly": false,
+  "is_pure_truck_stop": false,
+  "gas_details": null,
+  "wash_details": null,
+  "nearby_services": null,
+  "is_active": true,
+  "closed": false,
+  "visits": 404,
+  "created": "2023-04-04T16:53:02.151000Z",
+  "updated": "2026-10-20T10:05:53Z"
+ }
+]
