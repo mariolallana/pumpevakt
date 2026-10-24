@@ -10,9 +10,14 @@ updates:
       all-npm:
         patterns: ['*']
     ignore:
-      # Node 20 in CI caps wrangler/miniflare/vitest majors (docs/spec-flaws.md tooling notes, IMPL-10).
+      # Node 20 in CI caps wrangler/miniflare/vitest (docs/spec-flaws.md tooling notes, IMPL-10): newer
+      # wrangler needs Node 22 and workers-types v5. Move these together, by hand, with the Node upgrade.
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
+      - dependency-name: 'wrangler'
+      - dependency-name: 'miniflare'
+      - dependency-name: '@cloudflare/workers-types'
+      - dependency-name: 'vitest'
   - package-ecosystem: github-actions
     directory: /
     schedule:
