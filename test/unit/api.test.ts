@@ -1,7 +1,7 @@
 // GET /api/stations and /api/market against a real local D1 (Miniflare), see README.md.
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import worker from '../../src/index';
-import { marketHandler, stationsHandler } from '../../src/api';
+import { marketHandler, outlookHandler, stationsHandler } from '../../src/api';
 import { netSavingNok } from '../../src/core/netSaving';
 import { createTestDb } from './helpers';
 
@@ -186,5 +186,39 @@ describe('API routing', () => {
     const res = await worker.fetch(new Request('http://x/api/market'), broken);
     expect(res.status).toBe(500);
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe('INTERNAL');
+  });
+});
+
+describe('GET /api/outlook', () => {
+  const now = new Date('2026-10-24T15:00:00.000Z');
+  const rise = { at: '2026-10-24T13:00:00.000Z', before: 25, after: 27.5, now: 27.4 };
+
+  it("verdict from the last run's rise, live morning levels for today, stored levels for earlier days", async () => {
+    for (let i = 0; i < 5; i++) {
+      await station(`ck${i}`, 59.91 + i * 0.001, 10.75, 'Circle K');
+      await price(`ck${i}`, 'diesel', 25 + i * 0.1, '2026-10-24T06:00:00.000Z');
+    }
+    await t.db
+      .prepare(`INSERT INTO market_daily (day, series, value) VALUES ('2026-10-23', 'am_all_diesel', 24.5), ('2026-10-23', 'am_circlek_diesel', 24.4), ('2026-10-23', 'am_all_petrol95', 26)`)
+      .run();
+    await okRun('2026-10-24T14:30:00.000Z', { level: 27.3, levels: { diesel: 27.3, petrol95: 28.9 }, rises: { diesel: rise, petrol95: null } });
+    const o = await outlookHandler(url('/api/outlook?fuel=diesel'), env(), now);
+    expect(o).toMatchObject({ fuel: 'diesel', verdict: 'wait', rise, level: 27.3 });
+    expect(o.history).toEqual([
+      { day: '2026-10-23', levels: { all: 24.5, circlek: 24.4 } },
+      { day: '2026-10-24', levels: { all: 25.2, circlek: 25.2 } },
+    ]);
+    expect(o.norm).toMatchObject({ day: '2026-10-24', level: 25.2, nDays: 1, normal: null });
+    expect(await outlookHandler(url('/api/outlook?fuel=petrol95'), env(), now)).toMatchObject({ verdict: 'normal', level: 28.9, rise: null });
+    await expect(outlookHandler(url('/api/outlook?fuel=petrol98'), env(), now)).rejects.toThrow(/fuel/);
+  });
+
+  it("stations use the run's Oslo-wide rise: a pre-rise price is flagged outdated with no saving", async () => {
+    await station('k', 59.9287, 10.7499, 'Circle K');
+    await price('k', 'diesel', 25.1, '2026-10-24T10:38:00.000Z');
+    await okRun('2026-10-24T14:30:00.000Z', { level: 27.3, rises: { diesel: rise } });
+    const res = await stationsHandler(url('/api/stations?fuel=diesel&lat=59.9287&lon=10.7499&radius_km=1'), env(), now);
+    expect(res.stations[0]).toMatchObject({ id: 'k', outdated: true, netSavingNok: null });
+    expect(res.coverage).toEqual({ current: 0, outdated: 1, jumpDetected: true });
   });
 });

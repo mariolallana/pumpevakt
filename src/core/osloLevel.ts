@@ -2,7 +2,7 @@
 import type { Fuel, StationObs } from '../types';
 import { haversineKm, OSLO_S } from './geo';
 import { median } from './stats';
-import { isOutdated, recentMedian } from './priceJump';
+import { detectRise, isOutdated } from './rise';
 
 export interface OsloLevel {
   median: number;
@@ -17,7 +17,7 @@ export const MIN_FRESH = 30;
  * Median of fresh prices for `fuel` at stations within `radiusKm` of Oslo S.
  * Fresh = observed at most `freshHours` before `now` (age <= freshHours, inclusive; the literal docs/04 reading).
  * One price per station (the newest, if a station appears twice). Returns null if nFresh < minFresh.
- * Prices that predate a market-wide jump are left out of the median (src/core/priceJump.ts).
+ * Prices that predate a market-wide rise are left out of the median (src/core/rise.ts).
  */
 export function osloLevel(
   obs: StationObs[],
@@ -44,8 +44,8 @@ export function osloLevel(
   const fresh = [...perStation.values()];
   const nFresh = fresh.length;
   if (nFresh < minFresh || nFresh === 0) return null;
-  // Drop prices that predate a market-wide jump (src/core/priceJump.ts); keep the coverage count as-is.
-  const recentMed = recentMedian(fresh, nowMs);
-  const current = fresh.filter((v) => !isOutdated(v, nowMs, recentMed)).map((v) => v.price);
+  // Drop prices that predate today's market-wide rise (src/core/rise.ts); keep the coverage count as-is.
+  const rise = detectRise(fresh, nowMs);
+  const current = fresh.filter((v) => !isOutdated(v, rise)).map((v) => v.price);
   return { median: median(current.length ? current : fresh.map((v) => v.price))!, nFresh };
 }

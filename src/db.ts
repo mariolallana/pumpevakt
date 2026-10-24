@@ -3,6 +3,8 @@
 // Bulk writes pass one JSON array as a single bound parameter and expand it with json_each(), so each
 // write is ONE statement regardless of row count. This keeps every run far below D1's per-invocation
 // query limit (50 on the Workers free plan) and the 100-bound-parameters-per-statement limit.
+import type { BrandedReport } from './core/chains';
+import type { Rise } from './core/rise';
 import type { MarketPoint, Station, StationObs } from './types';
 
 export type Job = 'prices' | 'market';
@@ -186,18 +188,53 @@ export async function latestStationPrices(
   return results;
 }
 
-/** Newest successful prices run: its Oslo level L, when it finished, and nFresh (read with json_extract, no JSON.parse). */
-export async function latestOkPricesRun(db: D1Database): Promise<{ level: number | null; at: string; nFresh: number | null } | null> {
+export interface LatestPricesRun {
+  level: number | null;
+  at: string;
+  nFresh: number | null;
+  /** Per-fuel Oslo level and latest rise (F23); undefined for runs written before they existed. */
+  levels?: Record<string, number | null>;
+  rises?: Record<string, Rise | null>;
+}
+
+/** Newest successful prices run: its Oslo level L, when it finished, nFresh, and per-fuel levels/rises. */
+export async function latestOkPricesRun(db: D1Database): Promise<LatestPricesRun | null> {
   const r = await db
     .prepare(
       `SELECT json_extract(detail, '$.level') AS level, json_extract(detail, '$.nFresh') AS nFresh,
+              json_extract(detail, '$.levels') AS levels, json_extract(detail, '$.rises') AS rises,
               COALESCE(finished_at, started_at) AS at
        FROM runs WHERE job = 'prices' AND ok = 1 ORDER BY started_at DESC, id DESC LIMIT 1`,
     )
-    .first<{ level: unknown; nFresh: unknown; at: string }>();
+    .first<{ level: unknown; nFresh: unknown; levels: string | null; rises: string | null; at: string }>();
   if (!r) return null;
   const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-  return { level: num(r.level), at: r.at, nFresh: num(r.nFresh) };
+  const out: LatestPricesRun = { level: num(r.level), at: r.at, nFresh: num(r.nFresh) };
+  if (r.levels) out.levels = safeJson(r.levels) as Record<string, number | null>;
+  if (r.rises) out.rises = safeJson(r.rises) as Record<string, Rise | null>;
+  return out;
+}
+
+/** Diesel/95 reports observed since `sinceIso`, with the station's brand (chain levels, F23). Uses prices_time. */
+export async function brandedReportsSince(db: D1Database, sinceIso: string): Promise<BrandedReport[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT p.station_id AS stationId, s.brand, p.fuel, p.price, p.observed_at AS observedAt
+       FROM prices p JOIN stations s ON s.id = p.station_id
+       WHERE p.observed_at >= ?1 AND p.fuel IN ('diesel', 'petrol95')`,
+    )
+    .bind(sinceIso)
+    .all<BrandedReport>();
+  return results;
+}
+
+/** market_daily points of several series from `sinceDay` on (inclusive), ascending by day. */
+export async function marketSeriesMany(db: D1Database, series: string[], sinceDay: string): Promise<MarketPoint[]> {
+  const { results } = await db
+    .prepare(`SELECT day, series, value FROM market_daily WHERE day >= ?2 AND series IN (SELECT value FROM json_each(?1)) ORDER BY day ASC`)
+    .bind(JSON.stringify(series), sinceDay)
+    .all<MarketPoint>();
+  return results;
 }
 
 /** market_daily points of one series from `sinceDay` on (inclusive), ascending by day. */

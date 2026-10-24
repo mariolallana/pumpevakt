@@ -13,3 +13,10 @@ export function osloDate(d: Date): string {
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
+
+const osloHourFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Oslo', hour: '2-digit', hourCycle: 'h23' });
+
+/** Europe/Oslo hour of an instant, 0–23. */
+export function osloHour(d: Date): number {
+  return Number(osloHourFmt.format(d));
+}

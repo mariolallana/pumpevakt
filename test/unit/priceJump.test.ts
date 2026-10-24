@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isOutdated, recentMedian } from '../../src/core/priceJump';
+import { recentMedian } from '../../src/core/priceJump';
 import { osloLevel } from '../../src/core/osloLevel';
 import { buildStations } from '../../src/core/stationList';
 import type { StationObs } from '../../src/types';
@@ -7,32 +7,21 @@ import type { StationObs } from '../../src/types';
 const now = new Date('2026-10-24T15:00:00Z');
 const minsAgo = (m: number) => now.getTime() - m * 60_000;
 
-describe('priceJump', () => {
+describe('recentMedian (unconfirmed-bargain rule)', () => {
   const recent = Array.from({ length: 12 }, (_, i) => ({ price: 27.5 + (i % 3) * 0.1, t: minsAgo(10 + i * 5) }));
 
-  it('recentMedian needs at least 10 prices', () => {
+  it('needs at least 10 prices', () => {
     expect(recentMedian(recent.slice(0, 9), now.getTime())).toBeNull();
     expect(recentMedian(recent, now.getTime())).toBeCloseTo(27.6, 5);
   });
 
-  it('quiet evening: tops up to the 10 newest prices instead of switching off (F22)', () => {
-    // Only 3 reports in the last 2 h; the newest 10 are post-rise (~28), older ones pre-rise (~24.5).
+  it('quiet hours: tops up to the 10 newest prices instead of switching off (F22)', () => {
     const evening = [
       ...Array.from({ length: 3 }, (_, i) => ({ price: 28.2, t: minsAgo(30 + i * 20) })),
       ...Array.from({ length: 7 }, (_, i) => ({ price: 28.0, t: minsAgo(150 + i * 15) })),
       ...Array.from({ length: 20 }, (_, i) => ({ price: 24.5, t: minsAgo(400 + i * 10) })),
     ];
-    const med = recentMedian(evening, now.getTime());
-    expect(med).toBeCloseTo(28.0, 5);
-    expect(isOutdated({ price: 23.55, t: minsAgo(250) }, now.getTime(), med)).toBe(true);
-  });
-
-  it('flags old prices ≥ 1 kr below the recent median, keeps recent cheap ones', () => {
-    const med = recentMedian(recent, now.getTime());
-    expect(isOutdated({ price: 24.4, t: minsAgo(200) }, now.getTime(), med)).toBe(true); // pre-jump
-    expect(isOutdated({ price: 22.8, t: minsAgo(27) }, now.getTime(), med)).toBe(false); // recent bargain
-    expect(isOutdated({ price: 27.0, t: minsAgo(200) }, now.getTime(), med)).toBe(false); // old but in line
-    expect(isOutdated({ price: 20, t: minsAgo(200) }, now.getTime(), null)).toBe(false); // no recent data
+    expect(recentMedian(evening, now.getTime())).toBeCloseTo(28.0, 5);
   });
 });
 

@@ -44,6 +44,38 @@ export interface MarketResponse {
   latest: { level: number | null; at: string | null; nFresh: number | null };
 }
 
+export type ChainGroup = 'all' | 'circlek' | 'unox' | 'esso' | 'st1' | 'other';
+export const CHAIN_LABELS: Record<ChainGroup, string> = {
+  all: 'All Oslo',
+  circlek: 'Circle K',
+  unox: 'Uno-X',
+  esso: 'Esso',
+  st1: 'St1',
+  other: 'Others',
+};
+
+/** Oslo-wide daily price rise (src/core/rise.ts). */
+export interface Rise {
+  at: string;
+  before: number;
+  after: number;
+  now: number | null;
+}
+
+export interface OutlookResponse {
+  fuel: Fuel;
+  generatedAt: string;
+  verdict: 'wait' | 'good' | 'normal' | 'unknown';
+  rise: Rise | null;
+  level: number | null;
+  levelAt: string | null;
+  norm: { day: string | null; level: number | null; normal: number | null; nDays: number; delta: number | null };
+  history: Array<{ day: string; levels: Partial<Record<ChainGroup, number>> }>;
+}
+
+/** Fuels the outlook covers (enough reports for chain levels and rise detection). */
+export const OUTLOOK_FUELS: readonly Fuel[] = ['diesel', 'petrol95'];
+
 interface JobHealth {
   lastOk: string | null;
   consecutiveFailures: number;
@@ -80,6 +112,7 @@ export function fetchStations(
   return getJson(`/api/stations?${p}`, signal);
 }
 
+export const fetchOutlook = (fuel: Fuel, signal?: AbortSignal) => getJson<OutlookResponse>(`/api/outlook?fuel=${fuel}`, signal);
 export const fetchMarket = (signal?: AbortSignal) => getJson<MarketResponse>('/api/market?days=30', signal);
 export const fetchHealth = (signal?: AbortSignal) => getJson<HealthResponse>('/health', signal);
 

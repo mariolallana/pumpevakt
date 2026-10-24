@@ -1,6 +1,9 @@
-// Market job, daily 06:30 UTC: FRED ULSD + Norges Bank USD/NOK → WDI (docs/01 §3). Also prunes `runs` (docs/03 retention).
+// Market job, daily 06:30 UTC: FRED ULSD + Norges Bank USD/NOK → WDI (docs/01 §3). Also prunes `runs` (docs/03 retention)
+// and records each chain's morning price level for the last CHAIN_DAYS full days (F23; re-run safe, fills gaps).
+import { amLevels } from '../core/chains';
+import { osloDate } from '../core/time';
 import { computeWdi } from '../core/wdi';
-import { finishRun, pruneRuns, recordFailure, startRun, upsertMarket } from '../db';
+import { brandedReportsSince, finishRun, pruneRuns, recordFailure, startRun, upsertMarket } from '../db';
 import { fetchFred } from '../sources/fred';
 import { fetchUsdNok } from '../sources/norgesBank';
 import type { Env } from '../types';
@@ -8,6 +11,7 @@ import type { Env } from '../types';
 export const ULSD_FRED_ID = 'DDFUELNYH';
 export const ULSD_SERIES = 'ulsd_usd_gal';
 export const RUNS_RETENTION_DAYS = 30;
+export const CHAIN_DAYS = 7;
 
 export interface MarketResult {
   nPoints: number;
@@ -24,6 +28,10 @@ export async function runMarketJob(env: Env, deps: { fetchFn?: typeof fetch; now
   let runId: number | null = null;
   try {
     runId = await startRun(env.DB, 'market', startedAt);
+    // Chain levels come from our own stored reports, so they don't depend on FRED/Norges Bank being up.
+    const reports = await brandedReportsSince(env.DB, new Date(now.getTime() - (CHAIN_DAYS + 1) * 86_400_000).toISOString());
+    const chainPoints = Array.from({ length: CHAIN_DAYS }, (_, i) => amLevels(reports, osloDate(new Date(now.getTime() - (i + 1) * 86_400_000)))).flat();
+    await upsertMarket(env.DB, chainPoints);
     const [ulsd, usdnok] = await Promise.all([fetchFred(ULSD_FRED_ID, ULSD_SERIES, fetchFn, { now }), fetchUsdNok(fetchFn)]);
     if (ulsd.length === 0) throw new Error('FRED returned no ULSD observations');
     if (usdnok.length === 0) throw new Error('Norges Bank returned no USD/NOK observations');
@@ -37,6 +45,7 @@ export async function runMarketJob(env: Env, deps: { fetchFn?: typeof fetch; now
       nUlsd: ulsd.length,
       nUsdnok: usdnok.length,
       nWdi: wdi.length,
+      nChainPoints: chainPoints.length,
       lastWdi: last ? { day: last.day, value: Math.round(last.value * 1000) / 1000 } : null,
       pruned,
       ms: Date.now() - t0,

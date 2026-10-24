@@ -1,6 +1,7 @@
 // Prices job, every 30 min (docs/02 §4 steps 1–3 and 5; step 4 "signals" is Phase 3).
 import { changedObs, uniqueStations } from '../core/changes';
 import { osloLevel, type OsloLevel } from '../core/osloLevel';
+import { detectRise, type Rise } from '../core/rise';
 import { median } from '../core/stats';
 import { osloDate } from '../core/time';
 import { finishRun, insertPrices, latestPrices, recentOkPriceRuns, recordFailure, startRun, upsertMarket, upsertStations } from '../db';
@@ -42,6 +43,18 @@ export async function runPricesJob(env: Env, deps: { fetchFn?: typeof fetch; now
     await insertPrices(env.DB, changes);
 
     const level = osloLevel(obs, now);
+    // Oslo-wide level and latest daily rise per headline fuel, read by /api/stations and /api/outlook (F23).
+    const nowMs = now.getTime();
+    const levels: Record<string, number | null> = { diesel: level?.median ?? null };
+    const rises: Record<string, Rise | null> = {};
+    for (const fuel of ['diesel', 'petrol95'] as const) {
+      if (fuel !== 'diesel') levels[fuel] = osloLevel(obs, now, { fuel })?.median ?? null;
+      const snapshot = obs
+        .filter((o) => o.fuel === fuel)
+        .map((o) => ({ price: o.price, t: Date.parse(o.observedAt) }))
+        .filter((p) => Number.isFinite(p.t) && nowMs - p.t <= 24 * 3_600_000);
+      rises[fuel] = detectRise(snapshot, nowMs);
+    }
     let dayMedian: number | null = null;
     const today = osloDate(now);
     if (level) {
@@ -60,6 +73,8 @@ export async function runPricesJob(env: Env, deps: { fetchFn?: typeof fetch; now
       nChanges: changes.length,
       nFresh: level?.nFresh ?? 0,
       level: level?.median ?? null,
+      levels,
+      rises,
       dayMedian,
       day: today,
       ms: Date.now() - t0,
