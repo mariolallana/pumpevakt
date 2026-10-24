@@ -27,6 +27,10 @@ jobs:
       - run: npm ci
       # Never deploy a red build.
       - run: npm run typecheck
+      # Web v1: web/dist is uploaded as Workers static assets by `wrangler deploy` ([assets] in wrangler.toml).
+      # Built before the tests so QA's bundle checks run too.
+      - name: Build web
+        run: npm run build:web
       - run: npm test
       - name: Apply D1 migrations
         run: npx wrangler d1 migrations apply pumpevakt --remote

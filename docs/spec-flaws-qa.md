@@ -115,3 +115,105 @@ Gaps, contradictions and things that can't be tested in docs/00–10 (plus the P
 - **Where:** docs/01 §2, CLAUDE.md rule 1.
 - **Problem:** The honest User-Agent is required for drivstoffapp.no only. docs/05 §4 lists adapter rules (15 s timeout, fixture) but not the User-Agent. FRED and Norges Bank etiquette isn't stated.
 - **Fix:** Add "all adapters send the project User-Agent" to docs/05 §4. The implementation already does.
+
+---
+
+## Web v1
+
+Found while testing web v1 against `docs/web-v1-contract.md`, docs/04 §3, docs/05 §2 and docs/06 §2 (QA report: `docs/qa-report-web-v1.md`). This section doesn't change any spec.
+
+| ID | Doc / section | Severity |
+|---|---|---|
+| QA-SPEC-W1 | 06 §2 "stale" vs contract "stale" and sort order | Medium |
+| QA-SPEC-W2 | contract `/api/stations` (missing `lat`/`lon`, "fallback HOME") vs 05 §2 "no personal data" | Medium |
+| QA-SPEC-W3 | contract `refPrice` ("latest Oslo level") | Medium |
+| QA-SPEC-W4 | contract `refPrice` fallback (median of fresh in radius) | Medium |
+| QA-SPEC-W5 | 04 §5 and 06 §1 worked examples vs 04 §3 formula | Medium |
+| QA-SPEC-W6 | 06 §2 footer attribution vs contract footer | Medium |
+| QA-SPEC-W7 | contract "Oslo median card" vs 06 §2 "Market" signal card | Medium |
+| QA-SPEC-W8 | contract `/api/market?days` window | Low |
+| QA-SPEC-W9 | contract sort order (rounded vs raw saving, further tie-breaks) | Low |
+| QA-SPEC-W10 | contract / 04 §3: negative net saving | Low |
+| QA-SPEC-W11 | 06 §2 "44 px targets" for map markers and map controls | Low |
+| QA-SPEC-W12 | contract source-down banner rule vs `/health` `consecutiveFailures` | Low |
+| QA-SPEC-W13 | contract `Cache-Control` on error responses | Low |
+| QA-SPEC-W14 | contract "OpenFreeMap `liberty`" vs dark mode; 06 §2 / CLAUDE.md "Cloudflare Pages" | Low |
+
+### QA-SPEC-W1: "Stale" means two different things, and stale prices are still ranked
+- **Where:** docs/06 §2 ("Stale prices (> 24 h) are greyed and never ranked") vs the contract ("stale (> 6 h greyed, > 24 h excluded from the API)" and "sorted by netSavingNok desc" over every returned row).
+- **Problem:** docs/06 greys prices older than 24 h and never ranks them. The contract greys prices older than 6 h, drops prices older than 24 h, and ranks every row it returns, stale ones included. With the contract as written, a 23-hour-old cheap price can be row 1 with "Save ~60 kr". QA reproduced this: in the seeded UI, rows 3 and 4 were 10 h and 21 h old.
+- **Impact:** The top recommendation can be a price that has very likely changed since. That contradicts docs/06 and the "fresh price" definition (≤ 6 h) used everywhere else in docs/04.
+- **Fix:** Pick one definition. Suggested: fresh ≤ 6 h is ranked; 6–24 h is returned with `stale: true`, greyed and listed **after** every fresh row (sort by `stale` first, then by saving); > 24 h is never returned. Update docs/06 §2 to match.
+
+### QA-SPEC-W2: Missing `lat`/`lon` isn't specified, and the server-side HOME fallback publishes the home location
+- **Where:** contract scope 1 (`lat`/`lon` have no default and aren't marked as required) and scope 3 ("fallback HOME"), docs/05 §2 ("Read-only, no personal data"), docs/03 Config (HOME in `wrangler.toml` vars).
+- **Problem:** The client can't know HOME unless it's baked into the bundle or the API supplies it. The implementation makes `lat`/`lon` optional and echoes HOME as `origin` (IMPL-W2). Anyone who calls `GET /api/stations` with no parameters gets the user's home coordinates.
+- **Impact:** This is personal data on a public, unauthenticated endpoint, which docs/05 §2 rules out. (HOME is also in the committed `wrangler.toml`; the repo's visibility decides how much that matters.)
+- **Fix:** Either require `lat`/`lon` (400 when missing) and have the page fall back to a non-personal default such as Oslo S, or keep the server fallback and leave HOME out of the response (`origin: null`, or `origin` rounded to about 1 km). Also say in the contract whether `lat`/`lon` are required.
+
+### QA-SPEC-W3: "Latest Oslo level" has no age limit
+- **Where:** contract `refPrice` ("latest Oslo level for diesel; … if missing, the median of fresh …"), docs/04 shared definitions ("Oslo level L: … at the latest run").
+- **Problem:** Two things aren't defined. (a) How old L may be: if the prices job has failed for two days, the "latest" L is two days old. QA-API-OBS-01 shows refPrice 26.00 taken from a 48-hour-old run, which gives "Save ~146 kr". (b) Whether "missing" means "the newest run had no L (nFresh < 30)" or "no run ever had an L". The implementation reads only the newest ok run and falls back when its level is null (QA-API-S-20, IMPL-W4).
+- **Impact:** Savings are computed against an outdated reference, and nothing on the page says so.
+- **Fix:** "refPrice for diesel = L of the newest ok prices run if that run is ≤ 2 h old and L is non-null; otherwise the radius median." Also return the source (`refSource: 'oslo_level' | 'radius_median'`) so the UI doesn't have to guess. Today the UI guesses by comparing numbers with `/api/market`.
+
+### QA-SPEC-W4: The radius-median fallback has no minimum sample size
+- **Where:** contract `refPrice` ("the median of fresh (≤ 6 h) prices in the radius").
+- **Problem:** L needs nFresh ≥ 30 (docs/04 coverage guard), but the fallback has no minimum. With a single fresh station in the radius, that station is its own reference, so its saving is just −detour (QA-API-OBS-02). With two or three stations, the "reference" is noise.
+- **Impact:** For petrol, petrol98 and HVO (always the fallback) and for small radii, savings and pill colours aren't meaningful, but they look as authoritative as the diesel ones.
+- **Fix:** Require at least 5 fresh prices for the radius median (otherwise use the Oslo-area median for that fuel, or null). Document it next to the docs/04 coverage guard.
+
+### QA-SPEC-W5: The worked examples don't match the net-saving formula
+- **Where:** docs/04 §5 templates and docs/06 §1 `/near` vs docs/04 §3 (`(L − price) × TANK_L − 2 × km × 1.3 × CONSUMPTION/100 × price`).
+- **Problem:** With tank 50 and 6.5 L/100: "Uno-X Linderud Nord 22.87 · 2.1 km · save ~68 kr" under "Oslo median 23.21" gives (23.21 − 22.87) × 50 − 5.46 × 0.065 × 22.87 ≈ **9 kr**. 68 only comes out if the reference is the **14-day normal B = 24.40** (76.5 − 8.1 = 68.4). With that reference, "Esso Alna 23.02 · 3.0 km · save ~58" gives 69 − 11.7 = **57**, not 58. In the 💥 template ("22.85 … median 24.47 … 4.2 km … save ~78"), the neighbour median M gives 81 − 16.2 = **65**.
+- **Impact:** Implementers and testers can't tell which reference is meant (L, B or M), and the examples can't serve as test vectors. QA's tests follow the formula in §3 with L as the contract says. Hand-computed vectors are in `test/qa/netsaving.test.ts`.
+- **Fix:** Recompute the examples from §3, or state that the alert templates use a different reference and name it.
+
+### QA-SPEC-W6: The footer attribution differs between docs/06 and the contract, and drops the sources behind the WDI line
+- **Where:** docs/06 §2 ("Prices: drivstoffapp.no · Map © OpenStreetMap contributors · FRED · Norges Bank · SSB (CC BY 4.0)"), docs/04 §5 footer ("Market: FRED, Norges Bank") vs the contract ("Prices: drivstoffapp.no · Map © OpenStreetMap contributors, OpenFreeMap").
+- **Problem:** The web page shows the WDI "Wholesale cost" line, which is derived from FRED and Norges Bank data, but the contract's footer doesn't credit them. CLAUDE.md rule 1 says "always attribute".
+- **Note:** the implementation already adds "Wholesale index: FRED · Norges Bank" (IMPL-W9), so this is a docs-only fix.
+- **Fix:** Footer = "Prices: drivstoffapp.no · Market: FRED, Norges Bank · Map © OpenStreetMap contributors, OpenFreeMap". Credit SSB only once SSB data is actually shown.
+
+### QA-SPEC-W7: The "Oslo median card" has no reference point, so it can't say whether now is cheap
+- **Where:** contract scope 3 ("Oslo median card: level now, today's median, and the WDI line") vs docs/06 §2 ("a big signal card (same wording as the bot)") and docs/06 §1 `/status` ("Median now 24.33 · 14-day normal 24.61 (−0.28)").
+- **Problem:** "Level now" and "today's median" are nearly the same number (today's median is the median of today's L values). The only comparison available is "▲ 0.19 above today", which the user-tester found confusing. The comparison that actually answers "should I fill up now?" (now vs the 14-day normal, docs/04 §1) isn't in web v1, although `/api/market` already returns enough days to compute it.
+- **Fix:** Card = "Median now X · 14-day normal Y (±Δ)", with Y = median of the previous 14 `oslo_diesel_median` days. Drop "today's median" or make it secondary.
+
+### QA-SPEC-W8: The `days` window is ambiguous
+- **Where:** contract `GET /api/market?days=<n=30, max 365>`.
+- **Problem:** It doesn't say whether `days=30` means 30 calendar days including today (30 points) or "today minus 30" (31 points), which time zone sets "today", or whether values over 365 are a 400 or are clamped. The implementation returns 30 Europe/Oslo days including today and answers 400 above 365. Both choices are reasonable.
+- **Fix:** "The last `days` Europe/Oslo calendar days, today included. Values outside 1…365, or not integers, → 400."
+
+### QA-SPEC-W9: The sort key is underspecified
+- **Where:** contract "sorted by netSavingNok desc (nulls last), then price asc".
+- **Problem:** It doesn't say whether the sort uses the rounded integer or the raw value. The two orders differ when raw values round to the same integer (QA-API-S-17: 68.64 vs 68.69). Ties after price aren't specified either (the implementation adds distance and then id).
+- **Fix:** "Sort by the rounded `netSavingNok` desc, then `price` asc, then `distanceKm` asc, then `id`."
+
+### QA-SPEC-W10: Negative net saving
+- **Where:** docs/04 §3, docs/06 ("save ~62 kr"), contract.
+- **Problem:** Most rows are negative (dearer than the reference, or the detour costs more than the saving), and no spec says how to label them. The implementation shows "~8 kr dearer". docs/04 §3's qualifier "*if you go there just to fill up*" doesn't fit negative values.
+- **Fix:** Specify a label, e.g. "costs ~8 kr more", and whether negative rows should be visually de-emphasised.
+
+### QA-SPEC-W11: Does the 44 px target rule cover map pills and map controls?
+- **Where:** docs/06 §2 quality bar ("44 px targets"), contract ("Tap a pin to highlight its row").
+- **Problem:** The price pills are tap targets, but a 44 px-high pill would crowd the map, and MapLibre's zoom buttons are 29 px. WCAG 2.2 AA (2.5.8) only requires 24 px or enough spacing. The spec doesn't say which rule applies to the map.
+- **Fix:** "44 px for every control outside the map. Map pills ≥ 24 px high with a 44 px hit area (padding or an invisible ::after). The list is the accessible equivalent."
+
+### QA-SPEC-W12: The source-down rule counts an in-flight run as a failure
+- **Where:** contract (banner when `/health` `consecutiveFailures ≥ 2` or `lastOk` older than 2 h), `src/core/health.ts` (unfinished runs count as failures, QA-SPEC-3 / IMPL).
+- **Problem:** One real failure followed by the run that's currently in progress already gives `consecutiveFailures = 2`, so the banner can flash for up to about 30 s after a single failure. With a run every 30 min, "lastOk > 2 h" means four missed runs, which is slower to fire than the failure count.
+- **Fix:** Count only finished runs in `consecutiveFailures`, or put `finished_at IS NOT NULL` in the banner rule.
+
+### QA-SPEC-W13: Cache-Control on errors
+- **Where:** contract scope 1 ("JSON, `Cache-Control: public, max-age=60`").
+- **Problem:** Read literally, this applies to 400/404/500 too. A cached 500 would hide recovery for a minute at the edge. The implementation sends `no-store` on errors, which QA considers correct.
+- **Fix:** "`public, max-age=60` on 200 only; errors `no-store`."
+
+### QA-SPEC-W14: The contract asks for the `liberty` style and docs say Pages
+- **Where:** contract scope 2 ("OpenFreeMap `liberty` tiles"), docs/06 §2 (light and dark), docs/06 §2 and CLAUDE.md Stack ("Cloudflare Pages").
+- **Problem:** `liberty` is a light style only. The implementation switches to OpenFreeMap `dark` in dark mode, which is reasonable but outside the letter of the contract. The hosting deviation (Workers static assets, IMPL-W1) leaves CLAUDE.md's stack line and docs/06 out of date.
+- **Fix:** Contract: "`liberty` (light) / `dark` (dark)". When web v1 merges, update docs/06 §2 and CLAUDE.md Stack to "Workers static assets".
+
+### Round 2 note (web v1)
+- QA-SPEC-W1 and QA-SPEC-W2 are resolved by coordinator decisions: fresh rows rank before stale rows (IMPL-W12), and the default origin is Oslo S with HOME never exposed (IMPL-W11). The contract, docs/05 §2 and docs/06 §2 still need to be updated to match.

@@ -7,6 +7,8 @@
 | `core.test.ts` | `geo`, `stats.median`, `osloLevel`, `computeWdi`, `osloDate`, `changedObs`, `jobHealth`, `loadConfig` |
 | `sources.test.ts` | `mapStations` / `dedupeObs` / `fetchDrivstoffapp`, `parseFredCsv` / `fetchFred`, `parseNorgesBankCsv` / `fetchUsdNok`, all run on recorded fixtures with an injected fetch |
 | `jobs.test.ts` | `runPricesJob`, `runMarketJob`, `scheduled()` dispatch, `GET /health`, and the entry-module export shape |
+| `netSaving.test.ts` | Web v1: `netSavingNok` (docs/04 §3) and `buildStations` (24 h cut, 6 h stale flag, radius, refPrice fallback, sort) |
+| `api.test.ts` | Web v1: `GET /api/stations` and `GET /api/market` against real local D1 (latest price per station, refPrice from the newest ok run, 400 `BAD_INPUT` cases, `Cache-Control`, 404/405/500) |
 
 ## D1 in tests: Miniflare, not vitest-pool-workers
 

@@ -62,3 +62,98 @@ The implementer owns this log. The specs (docs/00–10) weren't edited. For each
 ## Not a flaw, noted for Phase 2
 - The failure ping is a `TODO(phase 2)` in both jobs. `/health` already exposes `consecutiveFailures`.
 - `runs` pruning (30 days) runs in the market job. If the market job keeps failing, pruning stops too. That's harmless at ~1.5k rows/month.
+
+## Web v1
+
+Implementer log for the lean web page (docs/web-v1-contract.md). The specs weren't edited.
+
+### IMPL-W1 · Deliberate deviation: Workers static assets instead of Cloudflare Pages
+- **Spec:** docs/06 §2, docs/07 and CLAUDE.md put the dashboard on Cloudflare Pages, calling the Worker's `/api/*`.
+- **Chosen (per contract):** the Vite build (`web/dist`) is served as **Workers static assets from the same Worker**: `[assets] directory = "web/dist"`, `not_found_handling = "single-page-application"`, `run_worker_first = ["/api/*", "/health"]`. wrangler 4.86's config schema accepts the array form. The result is one deployable on one origin, with no CORS. No `ASSETS` binding is needed, because the Worker never serves files itself. An asset miss that isn't a navigation reaches the Worker's plain 404. `deploy.yml` runs `npm run build:web` before `wrangler deploy`, `ci.yml` builds it too, and `web/dist/` is gitignored. Static asset requests are free and don't use Worker CPU.
+- **Suggested spec fix:** docs/02/06/07: "the web page is static assets of the same Worker".
+
+### IMPL-W2 · `/api/stations` without `lat`/`lon` defaults to HOME
+- **Problem:** the contract lists `lat`/`lon` as given and puts the "fallback HOME" in the browser. But the page doesn't know HOME (it's a wrangler var), and there's no config endpoint.
+- **Chosen:** if both are missing, origin = `HOME_LAT/HOME_LON`, echoed in `origin`. If only one is given, 400. The page sends no coordinates until "📍 Near me" succeeds. On denial or timeout it says "Showing prices near home". No new endpoint.
+- **Suggested spec fix:** add "lat/lon optional together; default HOME" to the contract and docs/05 §2.
+
+### IMPL-W3 · Param validation semantics
+- `radius_km` must be > 0 and ≤ 30 (decimals allowed). Above 30 is **400, not clamped**.
+- `days` must be an integer from 1 to 365. Above 365 is 400.
+- A param that is present but empty (`?lat=`) is 400.
+- `fuel` is case-sensitive (`DIESEL` → 400).
+- `lat` must be in [−90, 90] and `lon` in [−180, 180].
+- Errors return `400 {"error":{"code":"BAD_INPUT","message"}}` with `Cache-Control: no-store`.
+- Outside the contract, using the same JSON error shape: an unknown `/api/*` path → 404 `NOT_FOUND`; a method other than GET/HEAD → 405 `METHOD_NOT_ALLOWED`; a D1 failure → 500 `INTERNAL`.
+
+### IMPL-W4 · refPrice takes the newest ok run's level regardless of its age
+- **Problem:** "latest Oslo level" has no freshness bound. If the prices job stalls for a day, diesel savings are computed against a day-old `L`, while station prices may be newer.
+- **Chosen:** the literal contract. I use the newest successful prices run (by `started_at`). If its `level` is null (coverage guard), the fallback is the median of fresh (≤ 6 h) prices in the radius, **not** an older non-null level. The page shows the source-down banner when `/health` reports `consecutiveFailures ≥ 2` or `lastOk` > 2 h, so a stall is still visible.
+- **Suggested spec fix:** "use `L` only if its run is ≤ 2 h old, else fall back to the radius median".
+
+### IMPL-W5 · Rounding, boundaries and sort details
+- `distanceKm` is the haversine distance rounded to 2 decimals. `netSavingNok` is computed from that rounded value, so a client can reproduce it from the response. The radius filter uses the exact distance.
+- `ageMinutes` is whole minutes, rounded down. `stale` means age **> 6 h**, so exactly 6 h counts as fresh. A row is included if age is **≤ 24 h**, so exactly 24 h is kept. A future `observed_at` (clock skew) counts as age 0.
+- Sort order: `netSavingNok` (the rounded integer) desc with nulls last, then `price` asc, then `distanceKm` asc, then `id`. `netSavingNok` never returns `-0`.
+- `/api/market?days=n` covers the last n Europe/Oslo calendar days **including today** (`day ≥ osloDate(now − (n−1) days)`). `latest.at` is the run's `finished_at`, the same value as `/health` `lastOk`. `level` and `nFresh` are read with `json_extract` in SQL, so the Worker does no JSON parsing.
+- SQL: one correlated, index-backed "latest price for this fuel" lookup per active station inside a lat/lon box slightly larger than the circle, with `observed_at ≥ now − 24 h` applied in SQL. Haversine, median and ranking run in `src/core/stationList.ts`. Each `/api/*` request makes at most 3 D1 queries.
+
+### IMPL-W6 · docs/06 §2 vs contract on stale rows
+- **Problem:** docs/06 says "Stale prices (> 24 h) are greyed and never ranked". The contract says > 6 h is `stale` (greyed), > 24 h is excluded by the API, and the list is sorted purely by net saving. So a cheap price that is 20 h old can sit near the top.
+- **Chosen:** the contract. Stale rows are greyed and labelled "stale · 16 h ago" in the alert colour, and their map pills are faded and dashed. They are still ranked.
+- **Suggested spec fix:** decide whether stale rows should sink below fresh ones (a one-line change in `buildStations`).
+
+### IMPL-W7 · Dependencies and versions (Node 20.18)
+- All web packages are **devDependencies**: they're bundled at build time, and QA-PKG-04 forbids runtime deps.
+  - react/react-dom 19.3.1
+  - vite 6.4.5 (already the `overrides` pin)
+  - @vitejs/plugin-react 4.7.0 (5+ needs Node ≥ 20.19)
+  - tailwindcss + @tailwindcss/vite 4.3.3
+  - maplibre-gl **5.24.0**
+  - @fontsource/geist-sans + geist-mono 5.3.0 (latin subsets only, 5 weights in total)
+  - @types/react and @types/react-dom 19.3.0
+- **maplibre-gl 6.x was rejected.** It is ESM-only and loads its web worker from a separate `maplibre-gl-worker.mjs`, resolved against `import.meta.url` at runtime. A Vite bundle doesn't emit that file without extra `setWorkerUrl` wiring. 6.x also pulls in `@mapbox/jsonlint-lines-primitives`, which declares Node ≥ 22. 5.24 inlines its worker.
+- shadcn/ui and Recharts (docs/06/07) aren't used. Charts are out of web v1 scope, and the few controls are plain Tailwind.
+- `npm run typecheck` now also runs `tsc -p web/tsconfig.json` (DOM lib, react-jsx). The root `tsconfig.json` is unchanged.
+
+### IMPL-W8 · Map density on a 375 px screen
+- **Problem:** there are about 65 diesel stations within 10 km of HOME. On a phone, 65 price pills overlap into an unreadable blob.
+- **Chosen:** full price pills (▼/▲ plus price) only for the **top 10 rows by net saving, plus the selected station**. All other stations are 20 px dots that still carry ▼/▲ (or • at the reference) and a full `aria-label`. Tapping a dot selects its row and turns it into a full pill. The list is the complete, accessible mirror of the map.
+
+### IMPL-W9 · Attribution
+- The footer uses the contract text verbatim, plus "Wholesale index: FRED · Norges Bank". The median card shows the WDI line built from those sources, and docs/06 §2 lists them. The MapLibre compact attribution control stays on the map and is collapsed after load.
+
+### IMPL-W10 · Local dev gotchas (wrangler 4.86 + assets)
+- `wrangler dev` needs `web/dist` to exist, so run `npm run build:web` first. When I rebuilt `web/dist` **while `wrangler dev` was running**, the dev asset server kept returning 404 for the rewritten files (index.html and the hashed JS) until I restarted it. Restart `wrangler dev` after each `build:web`, or for UI work use `npm run dev:web` (Vite on :5173, proxying `/api` and `/health` to :8787).
+- With `not_found_handling = "single-page-application"`, `wrangler dev` treated `GET /__scheduled` as a navigation and returned index.html. To trigger crons locally, send `-H "Sec-Fetch-Mode: cors"`, e.g. `curl -H "Sec-Fetch-Mode: cors" "http://127.0.0.1:8787/__scheduled?cron=*/30+*+*+*+*"`. Production is unaffected, because `/__scheduled` doesn't exist there.
+
+### Web v1 · fix round after QA (docs/qa-report-web-v1.md)
+
+### IMPL-W11 · Privacy: `/api/stations` without lat/lon defaults to Oslo S, never HOME (supersedes IMPL-W2, fixes QA-BUG-W7)
+- **Problem:** IMPL-W2 echoed `HOME_LAT/HOME_LON` in `origin` on a public, unauthenticated endpoint, which breaks docs/05 §2 "no personal data".
+- **Chosen:** if both coordinates are missing, origin = **Oslo S (59.9111, 10.7528)** (`OSLO_S` from `src/core/geo.ts`). Only one coordinate → 400, as before. HOME is no longer read by any `/api/*` handler, and it never appears in the web bundle. The page's default view is "Near Oslo S", and "📍 Near me" uses browser geolocation. On denial or failure the page says "Showing prices near Oslo S". HOME stays in `wrangler.toml` for the Phase 2 bot (`/near`).
+- **QA test now in conflict:** `QA-API-V-22` accepts only `400` or `origin == HOME (59.93, 10.8)`. It now gets `200` with `origin == Oslo S`, which is the coordinator's privacy decision. That assertion should become `origin == {lat: 59.9111, lon: 10.7528}`, or "not HOME".
+- **Suggested spec fix:** docs/05 §2 / contract: "lat/lon optional together; default Oslo S; HOME is never exposed by the API".
+
+### IMPL-W12 · Ranking: fresh before stale (deliberate deviation from the contract sort; addresses QA-SPEC-W1 / UX-2)
+- **Contract:** sort by `netSavingNok` desc (nulls last), then price asc.
+- **Chosen (coordinator decision):** **fresh rows (≤ 6 h) always come before stale rows (6–24 h)**. Within each group the order is `netSavingNok` desc (nulls last), then `price` asc, then `distanceKm` asc, then `id`. An old cheap price can no longer sit above a fresh recommendation. This lives in `buildStations` (`src/core/stationList.ts`) and is unit-tested. The QA sort tests still pass, because in their fixtures the stale rows were already last.
+- **Suggested spec fix:** put this sort into the contract / docs/06 §2.
+
+### IMPL-W13 · UI fixes from the QA round
+- **QA-BUG-W3 (distance cut off at 375 px):** the sub-line is now `distance · brand`. The distance is a non-shrinking element, and only the brand may truncate. The brand is dropped when the station name already contains it ("Circle K Kalbakken"). Long names truncate on their own line. Age has stayed in the right-hand column since QA-BUG-W2.
+- **QA-BUG-W4 (stale contrast):** no more `opacity`. In stale rows, the price, name, delta and saving use `--ink-muted` (5.87:1 light), and the "stale · 16 h ago" label keeps `--alert`. Stale map pills are now `--surface` with `--ink-muted` text and a dashed `--ink-muted` border (≥ 5.8:1), still with ▼/▲.
+- **QA-BUG-W5:** in dark mode the neutral ("at Oslo average") pill gets dark text `#0E1112` on `#9AA3A5` (7.4:1), like the cheap and pricey pills.
+- **QA-BUG-W9:** in the error state the heading reads "Stations within N km" with no count. The comparison price and the savings note are hidden.
+- **Above the fold (UX-1):**
+  - The median card is now one line: "Oslo average **24.65** · today 24.65 · wholesale ▲0.17 · 4 min ago". The full sentence, with the WDI value and date, is in the card's `aria-label` and in tooltips.
+  - The mobile map is `30vh` (min 200 px) instead of `42vh`.
+  - At 375×812 the first station row ends at y ≈ 638 px.
+- **Wording (UX-3/4):** "ref" is gone. The list header says "vs Oslo average 24.65", or "vs average nearby" when the reference is the radius median. The row delta's accessible text is "x.xx below/above Oslo average". A delta at exactly the reference shows "= avg".
+- **CI:** `ci.yml` and `deploy.yml` now run `npm run build:web` **before** `npm test`, so QA's bundle checks (QA-WEB-DIST-*) run in CI.
+- **Not changed in this round:** QA-BUG-W6 (map tap targets < 44 px; the list is the accessible mirror) and QA-BUG-W8 (visible text label next to ▼/▲ in rows). UX-5…10 are also left as they are.
+
+### IMPL-W14 · Correction to IMPL-W10: the "stale assets" were an orphaned `workerd` (Windows), not wrangler caching
+- **Finding:** on Windows, stopping `npx wrangler dev` can leave its `workerd.exe` child running and **still listening on :8787**. Windows lets a second `wrangler dev` bind the same port too, so requests were answered by whichever process won. That was the old one, with the previous build's asset manifest. That explains the 404s for `/` and the hashed JS, and the inconsistent `/__scheduled` behaviour. After killing the orphans (`Get-NetTCPConnection -LocalPort 8787 -State Listen` → `Stop-Process`), a fresh `wrangler dev` served the new build correctly.
+- **Chosen:** `run_worker_first` now also lists `"/__scheduled"`, so `wrangler dev --test-scheduled` cron triggers always reach the Worker and never the SPA fallback. Plain `curl "http://127.0.0.1:8787/__scheduled?cron=*/30+*+*+*+*"` works with no extra header. In production `/__scheduled` is just a Worker 404. The `Sec-Fetch-Mode` header workaround in IMPL-W10 is withdrawn.
+- **Dev tip:** if the page 404s after a rebuild, check for more than one listener on :8787.

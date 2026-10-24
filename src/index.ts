@@ -1,4 +1,4 @@
-// Worker entry: fetch() (GET /health now; /telegram and /api/* in later phases) + scheduled() crons.
+// Worker entry: fetch() (GET /health, GET /api/*; /telegram later) + scheduled() crons. web/dist is served as static assets.
 // Only the default export lives here (workerd treats every named export of the entry as a handler).
 import { handleFetch, runScheduled } from './routes';
 import type { Env } from './types';
