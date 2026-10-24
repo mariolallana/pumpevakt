@@ -1,6 +1,7 @@
 // Owner-only API under /api/owner/* (push subscription, alerts with 👍/👎, mute, shadow mode, fill-ups).
 // Guarded by the same secret as /api/feedback (FEEDBACK_KEY, sent as X-Feedback-Key): one owner, no accounts.
 import { deliverPending, getSetting, listAlerts, notifyAll, setSetting, shadowOn, vapidFromEnv } from './alerts';
+import { latestOkPricesRun } from './db';
 import type { Env } from './types';
 
 const json = (body: unknown, status = 200): Response =>
@@ -9,6 +10,26 @@ const bad = (message: string) => json({ error: { code: 'BAD_INPUT', message } },
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const B64U = /^[A-Za-z0-9_-]+$/;
+
+/** Owner's Home, set from the app (never in the public repo). Rounded to 3 decimals (~100 m). */
+export interface Home {
+  lat: number;
+  lon: number;
+  setAt: string;
+}
+
+export async function getHome(db: D1Database): Promise<Home | null> {
+  const raw = await getSetting(db, 'home');
+  if (!raw) return null;
+  try {
+    const h = JSON.parse(raw) as Home;
+    return Number.isFinite(h.lat) && Number.isFinite(h.lon) ? h : null;
+  } catch {
+    return null;
+  }
+}
+
+const FILLUP_FUELS = ['diesel', 'petrol95'];
 
 export function parseSubscription(body: unknown): { endpoint: string; p256dh: string; auth: string } | string {
   if (!isObj(body) || typeof body.endpoint !== 'string' || !isObj(body.keys)) return 'expected a PushSubscription: { endpoint, keys: { p256dh, auth } }';
@@ -78,6 +99,7 @@ export async function handleOwner(request: Request, env: Env, now = new Date()):
     ]);
     return json({
       shadow,
+      home: await getHome(db),
       mutedUntil: mutedUntil && Date.parse(mutedUntil) > now.getTime() ? mutedUntil : null,
       alerts: alerts.map((a) => ({ id: a.id, kind: a.kind, status: a.status, createdAt: a.createdAt, sentAt: a.sentAt, feedback: a.feedback, title: a.payload.title, body: a.payload.body })),
     });
@@ -104,6 +126,51 @@ export async function handleOwner(request: Request, env: Env, now = new Date()):
     await setSetting(db, 'shadow', body.on ? 'on' : 'off');
     if (!body.on) await deliverPending(env, { now });
     return json({ shadow: body.on });
+  }
+  if (route === 'POST /home') {
+    const body = await readJson(request);
+    if (isObj(body) && body.clear === true) {
+      await setSetting(db, 'home', '');
+      return json({ home: null });
+    }
+    const lat = isObj(body) ? body.lat : undefined;
+    const lon = isObj(body) ? body.lon : undefined;
+    // Greater Oslo only: the alarms are about Oslo stations.
+    if (typeof lat !== 'number' || typeof lon !== 'number' || lat < 59.6 || lat > 60.3 || lon < 10.2 || lon > 11.4) return bad('lat/lon must be in the Oslo area');
+    const home: Home = { lat: Math.round(lat * 1000) / 1000, lon: Math.round(lon * 1000) / 1000, setAt: now.toISOString() };
+    await setSetting(db, 'home', JSON.stringify(home));
+    return json({ home });
+  }
+  if (route === 'POST /fillup') {
+    const body = await readJson(request);
+    if (!isObj(body)) return bad('expected { stationId, fuel, price }');
+    const { stationId, fuel, price } = body;
+    if (typeof stationId !== 'string' || !stationId) return bad('stationId is required');
+    if (typeof fuel !== 'string' || !FILLUP_FUELS.includes(fuel)) return bad(`fuel must be one of ${FILLUP_FUELS.join(', ')}`);
+    if (typeof price !== 'number' || !Number.isFinite(price) || price < 5 || price > 60) return bad('price must be between 5 and 60');
+    const station = await db.prepare(`SELECT name FROM stations WHERE id = ?1`).bind(stationId).first<{ name: string }>();
+    if (!station) return bad('unknown station');
+    const run = await latestOkPricesRun(db);
+    const level = fuel === 'diesel' ? (run?.levels?.diesel ?? run?.level ?? null) : (run?.levels?.[fuel] ?? null);
+    if (level === null) return json({ error: { code: 'NO_LEVEL', message: 'no current Oslo average to compare with; try again in 30 min' } }, 409);
+    const osloMedian = Math.round(level * 100) / 100;
+    await db
+      .prepare(`INSERT INTO fillups (station_id, price, oslo_median, at, fuel) VALUES (?1, ?2, ?3, ?4, ?5)`)
+      .bind(stationId, price, osloMedian, now.toISOString(), fuel)
+      .run();
+    return json({ osloMedian, savingPerL: Math.round((osloMedian - price) * 100) / 100 }, 201);
+  }
+  if (route === 'GET /fillups') {
+    const { results } = await db
+      .prepare(
+        `SELECT f.id, f.at, f.fuel, f.price, f.oslo_median AS osloMedian, s.name AS stationName
+         FROM fillups f JOIN stations s ON s.id = f.station_id WHERE f.at >= ?1 ORDER BY f.at DESC`,
+      )
+      .bind(new Date(now.getTime() - 365 * 86_400_000).toISOString())
+      .all<{ id: number; at: string; fuel: string; price: number; osloMedian: number; stationName: string }>();
+    const savings = results.map((r) => r.osloMedian - r.price);
+    const avg = savings.length ? Math.round((savings.reduce((a, b) => a + b, 0) / savings.length) * 100) / 100 : null;
+    return json({ n: results.length, avgSavingPerL: avg, goalPerL: 1, fillups: results });
   }
   return json({ error: { code: 'NOT_FOUND', message: `no route ${route}` } }, 404);
 }

@@ -4,12 +4,13 @@ import m0001 from '../../db/migrations/0001_init.sql?raw';
 import m0002 from '../../db/migrations/0002_feedback.sql?raw';
 import m0003 from '../../db/migrations/0003_prices_time_index.sql?raw';
 import m0004 from '../../db/migrations/0004_push_alerts.sql?raw';
+import m0005 from '../../db/migrations/0005_fillup_fuel.sql?raw';
 import type { Env, Station, StationObs, Fuel } from '../../src/types';
 
 export async function createTestDb(): Promise<{ env: Env; db: D1Database; dispose: () => Promise<void>; reset: () => Promise<void> }> {
   const mf = new Miniflare({ modules: true, script: 'export default { fetch() { return new Response("") } }', d1Databases: ['DB'] });
   const db = (await mf.getD1Database('DB')) as unknown as D1Database;
-  const stmts = [m0001, m0002, m0003, m0004]
+  const stmts = [m0001, m0002, m0003, m0004, m0005]
     .join(';\n')
     .replace(/--[^\n]*/g, '')
     .split(';')
@@ -21,7 +22,7 @@ export async function createTestDb(): Promise<{ env: Env; db: D1Database; dispos
     db,
     dispose: () => mf.dispose(),
     reset: async () => {
-      for (const t of ['prices', 'stations', 'market_daily', 'runs', 'alerts', 'fillups', 'settings', 'feedback', 'push_subscriptions']) await db.prepare(`DELETE FROM ${t}`).run();
+      for (const t of ['fillups', 'prices', 'stations', 'market_daily', 'runs', 'alerts', 'settings', 'feedback', 'push_subscriptions']) await db.prepare(`DELETE FROM ${t}`).run();
     },
   };
 }
