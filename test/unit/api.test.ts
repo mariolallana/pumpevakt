@@ -209,28 +209,29 @@ describe('GET /api/outlook', () => {
       { day: '2026-10-24', levels: { all: 25.2, circlek: 25.2 } },
     ]);
     expect(o.norm).toMatchObject({ day: '2026-10-24', level: 25.2, nDays: 1, normal: null });
-    expect(o.spread).toEqual([]); // 5 reports today < 20, nothing stored
+    expect(o.spread).toEqual([]); // 5 stations today < 10, nothing stored
     expect(o.wdi).toEqual([]);
     expect(await outlookHandler(url('/api/outlook?fuel=petrol95'), env(), now)).toMatchObject({ verdict: 'normal', level: 28.9, rise: null });
     await expect(outlookHandler(url('/api/outlook?fuel=petrol98'), env(), now)).rejects.toThrow(/fuel/);
   });
 
-  it('spread: stored days plus live today (≥ 20 reports); wholesale for diesel only', async () => {
+  it('spread: stored days plus live today, per window (≥ 10 stations); wholesale for diesel only', async () => {
     const now = new Date('2026-10-24T15:00:00.000Z');
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 10; i++) {
       await station(`s${i}`, 59.91 + i * 0.001, 10.75, 'Uno X');
-      await price(`s${i}`, 'diesel', 24 + i * 0.1, '2026-10-24T08:00:00.000Z');
+      await price(`s${i}`, 'diesel', 24 + i * 0.2, '2026-10-24T07:00:00.000Z'); // 09:00 Oslo: morning
     }
     await t.db
       .prepare(
-        `INSERT INTO market_daily (day, series, value) VALUES ('2026-10-22', 'p25_diesel', 23.9), ('2026-10-22', 'p50_diesel', 24.3), ('2026-10-22', 'p75_diesel', 25.1),
-         ('2026-10-23', 'p50_diesel', 24.2), ('2026-10-23', 'wdi_nok_l', 8.7)`,
+        `INSERT INTO market_daily (day, series, value) VALUES
+         ('2026-10-22', 'spread_am_p25_diesel', 23.9), ('2026-10-22', 'spread_am_p50_diesel', 24.3), ('2026-10-22', 'spread_am_p75_diesel', 25.1),
+         ('2026-10-22', 'spread_pm_p50_diesel', 27.2), ('2026-10-23', 'wdi_nok_l', 8.7)`,
       )
       .run();
     const o = await outlookHandler(url('/api/outlook?fuel=diesel'), env(), now);
     expect(o.spread).toEqual([
-      { day: '2026-10-22', p25: 23.9, p50: 24.3, p75: 25.1 }, // 10-23 has only p50 → left out
-      { day: '2026-10-24', p25: 24.48, p50: 24.95, p75: 25.42 },
+      { day: '2026-10-22', am: { p25: 23.9, p50: 24.3, p75: 25.1 } }, // pm has only p50 → left out
+      { day: '2026-10-24', am: { p25: 24.45, p50: 24.9, p75: 25.35 } },
     ]);
     expect(o.wdi).toEqual([{ day: '2026-10-23', value: 8.7 }]);
     expect((await outlookHandler(url('/api/outlook?fuel=petrol95'), env(), now)).wdi).toEqual([]);

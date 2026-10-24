@@ -71,7 +71,8 @@ export interface OutlookResponse {
   levelAt: string | null;
   norm: { day: string | null; level: number | null; normal: number | null; nDays: number; delta: number | null };
   history: Array<{ day: string; levels: Partial<Record<ChainGroup, number>> }>;
-  spread: Array<{ day: string; p25: number; p50: number; p75: number }>;
+  /** Per day: p25/p50/p75 across stations, morning (06–12, before the daily rise) and afternoon (15–24, after). */
+  spread: Array<{ day: string; am?: { p25: number; p50: number; p75: number }; pm?: { p25: number; p50: number; p75: number } }>;
   wdi: Array<{ day: string; value: number }>;
 }
 
