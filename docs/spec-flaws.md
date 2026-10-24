@@ -17,6 +17,8 @@ Details:
 | F4 | **The future vs fresh vs rankable windows** (6 h / 24 h) are unnamed and overlap. Prices with a timestamp in the future count as fresh | QA-SPEC-9, QA-BUG-4 | Future timestamps are accepted as fresh |
 | F5 | **docs/10 contradicts docs/04 and docs/08:** a 5-day/30-day WDI rule vs a 14-day Oslo median, and a historical replay listed as a Phase 1 deliverable | QA-SPEC-10 | Follows docs/04 and docs/08 |
 
+| F19 | **Daily price jump makes "fresh" prices wrong (found in user testing, 2026-10-24).** Oslo diesel jumped about 3 kr/L around 12:00 UTC (median of updates 10–12 UTC was 24.43; after 12 UTC it was 27.45). The 6 h "fresh" window kept pre-jump prices, so the app showed an Oslo average of ~24.7–25.2 and old 22–24 kr "deals" while real prices were ~27.5–28.6 | User test | **Hotfix shipped:** `src/core/priceJump.ts`. A price more than 2 h old and ≥ 1 kr below the median of the last 2 h (needs ≥ 10 recent prices) counts as outdated: it's left out of the Oslo level and greyed and ranked last in the list. Recent cheap prices are kept. Specs (docs/01 §4, docs/04 shared definitions) should adopt this rule |
+
 ## Should fix (precision and ops)
 
 | # | Problem | Found by |

@@ -3,6 +3,7 @@ import type { Fuel } from '../types';
 import { haversineKm } from './geo';
 import { netSavingNok } from './netSaving';
 import { median } from './stats';
+import { isOutdated, recentMedian } from './priceJump';
 
 export const MAX_AGE_HOURS = 24; // older prices are never returned
 export const STALE_HOURS = 6; // older prices are returned but flagged `stale` (and greyed in the UI)
@@ -69,6 +70,12 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
   const maxAgeMs = MAX_AGE_HOURS * 3_600_000;
   const staleMs = STALE_HOURS * 3_600_000;
 
+  // Area-wide recent median from all rows (not just the radius), to spot prices that predate a jump.
+  const recentMed = recentMedian(
+    rows.map((r) => ({ price: r.price, t: Date.parse(r.observedAt) })).filter((p) => Number.isFinite(p.t)),
+    nowMs,
+  );
+
   const kept: Array<Omit<StationItem, 'netSavingNok'> & { exactKm: number; ageMs: number }> = [];
   for (const r of rows) {
     const t = Date.parse(r.observedAt);
@@ -87,7 +94,8 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
       price: r.price,
       observedAt: r.observedAt,
       ageMinutes: Math.floor(ageMs / 60_000),
-      stale: ageMs > staleMs,
+      // Outdated (before a market-wide jump) is treated like stale: greyed, ranked last, not in the reference.
+      stale: ageMs > staleMs || isOutdated({ price: r.price, t }, nowMs, recentMed),
       distanceKm: round2(exactKm),
       exactKm,
       ageMs,
