@@ -6,7 +6,7 @@ import { buildStations, MAX_AGE_HOURS, type StationsResponse } from './core/stat
 import { osloDate } from './core/time';
 import { WDI_SERIES } from './core/wdi';
 import { amLevels, amSeries, CHAIN_FUELS, GROUPS, type ChainFuel, type Group } from './core/chains';
-import { daySpread, QUANTILES, spreadSeries } from './core/dailySpread';
+import { daySpread, QUANTILES, spreadSeries, WINDOWS, type SpreadWindow } from './core/dailySpread';
 import { norm, verdict, type Norm, type Verdict } from './core/outlook';
 import type { Rise } from './core/rise';
 import { brandedReportsSince, latestOkPricesRun, latestStationPrices, marketSeries, marketSeriesMany } from './db';
@@ -40,13 +40,24 @@ export interface OutlookResponse {
   norm: Norm;
   /** Morning (06–12) level per chain, one row per day with data, oldest first; today's row is live. */
   history: Array<{ day: string; levels: Partial<Record<Group, number>> }>;
-  /** p25/p50/p75 of every price reported each day (oldest first, days with ≥ 20 reports; today is live). */
-  spread: Array<{ day: string; p25: number; p50: number; p75: number }>;
+  /**
+   * Per day (oldest first; today live): p25/p50/p75 across stations in the morning (06–12, before the daily
+   * rise) and afternoon/evening (15–24, after it). A window is present only with ≥ 10 stations reporting.
+   */
+  spread: Array<{ day: string } & Partial<Record<SpreadWindow, SpreadQ>>>;
   /** Official wholesale diesel cost, NOK/L (FRED ULSD × Norges Bank); empty for petrol. */
   wdi: Array<{ day: string; value: number }>;
 }
 
+export interface SpreadQ {
+  p25: number;
+  p50: number;
+  p75: number;
+}
+
 export const OUTLOOK_DAYS = 30;
+const WINDOW_KEYS = Object.keys(WINDOWS) as SpreadWindow[];
+const SPREAD_KEYS = WINDOW_KEYS.flatMap((w) => QUANTILES.map((q) => ({ w, q })));
 
 export class BadInput extends Error {}
 
@@ -137,22 +148,28 @@ export async function outlookHandler(url: URL, env: Env, now = new Date()): Prom
   const since = osloDate(new Date(now.getTime() - (OUTLOOK_DAYS - 1) * 86_400_000));
   const [run, points, reports, wdi] = await Promise.all([
     latestOkPricesRun(env.DB),
-    marketSeriesMany(env.DB, [...GROUPS.map((g) => amSeries(g, fuel)), ...QUANTILES.map((q) => spreadSeries(q, fuel))], since),
+    marketSeriesMany(env.DB, [...GROUPS.map((g) => amSeries(g, fuel)), ...SPREAD_KEYS.map(({ w, q }) => spreadSeries(w, q, fuel))], since),
     // Today's morning levels are computed live; earlier days come from the market job.
     brandedReportsSince(env.DB, new Date(now.getTime() - 26 * 3_600_000).toISOString()),
     fuel === 'diesel' ? marketSeries(env.DB, WDI_SERIES, since) : Promise.resolve([]),
   ]);
   const live = [...amLevels(reports, today), ...daySpread(reports, today)];
   const stored = points.filter((x) => x.day !== today);
-  const spreadByDay = new Map<string, Record<string, number>>();
+  const spreadByDay = new Map<string, Record<string, number>>(); // day → { 'am25': …, 'pm75': … }
   for (const pt of [...stored, ...live]) {
-    const q = QUANTILES.find((x) => spreadSeries(x, fuel) === pt.series);
-    if (q) spreadByDay.set(pt.day, { ...spreadByDay.get(pt.day), [`p${q}`]: pt.value });
+    const k = SPREAD_KEYS.find(({ w, q }) => spreadSeries(w, q, fuel) === pt.series);
+    if (k) spreadByDay.set(pt.day, { ...spreadByDay.get(pt.day), [`${k.w}${k.q}`]: pt.value });
   }
   const spread = [...spreadByDay.entries()]
-    .filter(([, v]) => v.p25 !== undefined && v.p50 !== undefined && v.p75 !== undefined)
     .sort(([a], [b]) => (a < b ? -1 : 1))
-    .map(([day, v]) => ({ day, p25: v.p25!, p50: v.p50!, p75: v.p75! }));
+    .map(([day, v]) => {
+      const row: OutlookResponse['spread'][number] = { day };
+      for (const w of WINDOW_KEYS) {
+        if (v[`${w}25`] !== undefined && v[`${w}50`] !== undefined && v[`${w}75`] !== undefined) row[w] = { p25: v[`${w}25`]!, p50: v[`${w}50`]!, p75: v[`${w}75`]! };
+      }
+      return row;
+    })
+    .filter((row) => WINDOW_KEYS.some((w) => row[w]));
   const byDay = new Map<string, Partial<Record<Group, number>>>();
   for (const pt of [...stored, ...live]) {
     const g = GROUPS.find((x) => amSeries(x, fuel) === pt.series);
