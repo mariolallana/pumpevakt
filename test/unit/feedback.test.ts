@@ -1,14 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import migrationRaw from '../../db/migrations/0002_feedback.sql?raw';
 import { parseFeedback } from '../../src/feedback';
 import { handleFetch } from '../../src/routes';
 import { createTestDb, rows } from './helpers';
 
-const migration = migrationRaw.replace(/--[^\n]*/g, '');
 let t: Awaited<ReturnType<typeof createTestDb>>;
 beforeAll(async () => {
-  t = await createTestDb();
-  await t.db.prepare(migration.trim().replace(/;\s*$/, '')).run();
+  t = await createTestDb(); // applies every migration, 0002_feedback included
 });
 afterAll(() => t.dispose());
 

@@ -18,6 +18,15 @@ export function feedbackKey(): string | null {
   }
 }
 
+/** Keep a key typed into the app (the installed iPhone app has its own storage, separate from Safari). */
+export function saveFeedbackKey(key: string): void {
+  try {
+    localStorage.setItem(STORE, key);
+  } catch {
+    // Private mode: the key still works for this session.
+  }
+}
+
 export interface FeedbackBody {
   verdict: 'ok' | 'wrong' | 'note';
   stationId?: string;

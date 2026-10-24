@@ -34,3 +34,8 @@ CONSUMPTION_L100 = "6.5"
 SENSITIVITY = "normal"
 QUIET_HOURS = "22-07"
 ALLOWED_CHAT_IDS = "123456789"
+
+# Web push (owner decision 2026-10-24: web app first). Public key only; the private key is the
+# VAPID_PRIVATE_JWK secret (wrangler secret put VAPID_PRIVATE_JWK).
+VAPID_PUBLIC_KEY = "BEhk4mFJ5cwd4vOJFTd4hBXKrVSU11OEJKb10WgpMJYLZbWr8qAsYisWWmMs1IRrVe4MCsGFctVbTEu-w--55yc"
+VAPID_SUBJECT = "https://github.com/mariolallana/pumpevakt"
