@@ -201,6 +201,13 @@ export default function App() {
             </span>
           )}
         </div>
+        {data && !error && data.coverage.jumpDetected && (
+          <p className="px-4 pb-1 text-xs text-muted">
+            Prices rose market-wide today. Showing <span className="num text-ink">{data.coverage.current}</span> of{' '}
+            <span className="num text-ink">{data.coverage.current + data.coverage.hiddenOutdated}</span> stations with a price
+            from after the rise; the rest are hidden until someone reports a new price.
+          </p>
+        )}
         {stations.length > 0 && !error && (
           <p className="px-4 pb-2 text-xs text-muted">Savings are for a full tank, if you go there just to fill up.</p>
         )}

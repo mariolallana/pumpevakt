@@ -18,8 +18,8 @@ Details:
 | F5 | **docs/10 contradicts docs/04 and docs/08:** a 5-day/30-day WDI rule vs a 14-day Oslo median, and a historical replay listed as a Phase 1 deliverable | QA-SPEC-10 | Follows docs/04 and docs/08 |
 
 | F19 | **Daily price jump makes "fresh" prices wrong (found in user testing, 2026-10-24).** Oslo diesel jumped about 3 kr/L around 12:00 UTC (median of updates 10–12 UTC was 24.43; after 12 UTC it was 27.45). The 6 h "fresh" window kept pre-jump prices, so the app showed an Oslo average of ~24.7–25.2 and old 22–24 kr "deals" while real prices were ~27.5–28.6 | User test | **Hotfix shipped:** `src/core/priceJump.ts`. A price more than 2 h old and ≥ 1 kr below the median of the last 2 h (needs ≥ 10 recent prices) counts as outdated: it's left out of the Oslo level and greyed and ranked last in the list. Recent cheap prices are kept. Specs (docs/01 §4, docs/04 shared definitions) should adopt this rule |
+| F20 | **The source has wrong or late recent reports, and outdated prices were still shown.** Circle K Kiellands Plass showed 25.10 (4.5 h old) while DrivstoffAppen showed 29.18. Circle K Bjerke had a 23.23 report from 45 min earlier while other Circle K stations were 28.7–29.2 | User test | **Shipped, user-approved:** (1) pre-jump prices are **hidden** from `/api/stations`, not greyed. (2) A recent price **> 3 kr below** the recent median is `unconfirmed`, unless a recent report within 3 km is within 0.5 kr of it; unconfirmed prices rank after confirmed ones and are left out of the reference price. (3) The response has `coverage {current, hiddenOutdated, jumpDetected}` and the UI explains it. Specs (docs/04, docs/06, the web-v1 contract) should adopt this |
 
-## Should fix (precision and ops)
 
 | # | Problem | Found by |
 |---|---|---|
