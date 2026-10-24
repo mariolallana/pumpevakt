@@ -16,6 +16,7 @@ import {
 } from './api';
 import { age, price2 } from './format';
 import { MarketCard } from './MarketCard';
+import { HistoryChart } from './HistoryChart';
 import { OutlookCard } from './OutlookCard';
 import { ListSkeleton, StationList } from './StationList';
 import { FeedbackPanel } from './FeedbackPanel';
@@ -143,6 +144,9 @@ export default function App() {
       {OUTLOOK_FUELS.includes(fuel) && (
         <div className="px-4 pb-2">
           <OutlookCard outlook={outlook} loading={outlookLoading} fuel={fuel} />
+          <div className="mt-2">
+            <HistoryChart outlook={outlook} fuel={fuel} />
+          </div>
         </div>
       )}
 

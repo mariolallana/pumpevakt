@@ -1,6 +1,8 @@
 // Market job, daily 06:30 UTC: FRED ULSD + Norges Bank USD/NOK → WDI (docs/01 §3). Also prunes `runs` (docs/03 retention)
-// and records each chain's morning price level for the last CHAIN_DAYS full days (F23; re-run safe, fills gaps).
+// and records each chain's morning price level and the day's p25/p50/p75 for the last CHAIN_DAYS full days
+// (F23; re-run safe, fills gaps).
 import { amLevels } from '../core/chains';
+import { daySpread } from '../core/dailySpread';
 import { osloDate } from '../core/time';
 import { computeWdi } from '../core/wdi';
 import { brandedReportsSince, finishRun, pruneRuns, recordFailure, startRun, upsertMarket } from '../db';
@@ -30,7 +32,10 @@ export async function runMarketJob(env: Env, deps: { fetchFn?: typeof fetch; now
     runId = await startRun(env.DB, 'market', startedAt);
     // Chain levels come from our own stored reports, so they don't depend on FRED/Norges Bank being up.
     const reports = await brandedReportsSince(env.DB, new Date(now.getTime() - (CHAIN_DAYS + 1) * 86_400_000).toISOString());
-    const chainPoints = Array.from({ length: CHAIN_DAYS }, (_, i) => amLevels(reports, osloDate(new Date(now.getTime() - (i + 1) * 86_400_000)))).flat();
+    const chainPoints = Array.from({ length: CHAIN_DAYS }, (_, i) => {
+      const day = osloDate(new Date(now.getTime() - (i + 1) * 86_400_000));
+      return [...amLevels(reports, day), ...daySpread(reports, day)];
+    }).flat();
     await upsertMarket(env.DB, chainPoints);
     const [ulsd, usdnok] = await Promise.all([fetchFred(ULSD_FRED_ID, ULSD_SERIES, fetchFn, { now }), fetchUsdNok(fetchFn)]);
     if (ulsd.length === 0) throw new Error('FRED returned no ULSD observations');
