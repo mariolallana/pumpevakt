@@ -25,7 +25,8 @@ export function StationList({ stations, refPrice, selectedId, onSelect }: Props)
         const selected = s.id === selectedId;
         const brand = extraBrand(s.name, s.brand);
         // Stale rows are greyed by colour (--ink-muted), never by opacity, so they keep AA contrast.
-        const valueTone = (t: keyof typeof toneClass) => (s.stale ? 'text-muted' : toneClass[t]);
+        const doubtful = s.stale || s.unconfirmed;
+        const valueTone = (t: keyof typeof toneClass) => (doubtful ? 'text-muted' : toneClass[t]);
         return (
           <li
             key={s.id}
@@ -40,11 +41,11 @@ export function StationList({ stations, refPrice, selectedId, onSelect }: Props)
               type="button"
               onClick={() => onSelect(s.id)}
               aria-pressed={selected}
-              aria-label={`${i + 1}. ${s.name}${brand ? `, ${brand}` : ''}: ${price2(s.price)} kroner per litre, ${km(s.distanceKm)}, updated ${age(s.ageMinutes)}${s.stale ? ' (stale)' : ''}${d ? `, ${d.text}` : ''}${sv ? `, ${sv.text}` : ''}. Show on map`}
+              aria-label={`${i + 1}. ${s.name}${brand ? `, ${brand}` : ''}: ${price2(s.price)} kroner per litre, ${km(s.distanceKm)}, updated ${age(s.ageMinutes)}${s.stale ? ' (stale)' : ''}${s.unconfirmed ? ' (unconfirmed: far below other recent prices)' : ''}${d ? `, ${d.text}` : ''}${sv ? `, ${sv.text}` : ''}. Show on map`}
               className="flex min-h-[64px] min-w-0 flex-1 items-center gap-3 py-3 pl-4 pr-1 text-left"
             >
               <span className="w-[4.5rem] shrink-0">
-                <span className={`num block text-xl font-semibold leading-tight ${s.stale ? 'text-muted' : ''}`}>{price2(s.price)}</span>
+                <span className={`num block text-xl font-semibold leading-tight ${doubtful ? 'text-muted' : ''}`}>{price2(s.price)}</span>
                 {d && (
                   <span className={`num block text-xs ${valueTone(d.tone)}`}>
                     {d.arrow} {d.tone === 'neutral' ? 'avg' : price2(Math.abs(s.price - (refPrice ?? s.price)))}
@@ -61,8 +62,8 @@ export function StationList({ stations, refPrice, selectedId, onSelect }: Props)
               </span>
               <span className="shrink-0 text-right">
                 {sv && <span className={`num block text-sm font-medium ${valueTone(sv.tone)}`}>{sv.text}</span>}
-                <span className={`num block text-xs ${s.stale ? 'font-medium text-alert' : 'text-muted'}`}>
-                  {s.stale && 'stale · '}
+                <span className={`num block text-xs ${doubtful ? 'font-medium text-alert' : 'text-muted'}`}>
+                  {s.stale ? 'stale · ' : s.unconfirmed ? 'unconfirmed · ' : ''}
                   {age(s.ageMinutes)}
                 </span>
               </span>

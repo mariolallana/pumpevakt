@@ -70,7 +70,8 @@ describe('buildStations', () => {
 
   it('echoes fuel, origin, radius and generatedAt', () => {
     expect(buildStations([], { ...base, osloLevel: 24 })).toEqual({
-      fuel: 'diesel', origin: OSLO_S, radiusKm: 10, refPrice: 24, generatedAt: now.toISOString(), stations: [],
+      fuel: 'diesel', origin: OSLO_S, radiusKm: 10, refPrice: 24, generatedAt: now.toISOString(),
+      coverage: { current: 0, hiddenOutdated: 0, jumpDetected: false }, stations: [],
     });
   });
 });

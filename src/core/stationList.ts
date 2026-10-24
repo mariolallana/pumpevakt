@@ -3,7 +3,7 @@ import type { Fuel } from '../types';
 import { haversineKm } from './geo';
 import { netSavingNok } from './netSaving';
 import { median } from './stats';
-import { isOutdated, recentMedian } from './priceJump';
+import { isOutdated, isUnconfirmed, recentMedian, type PlacedPrice } from './priceJump';
 
 export const MAX_AGE_HOURS = 24; // older prices are never returned
 export const STALE_HOURS = 6; // older prices are returned but flagged `stale` (and greyed in the UI)
@@ -31,8 +31,17 @@ export interface StationItem {
   observedAt: string;
   ageMinutes: number;
   stale: boolean;
+  /** Recent but implausibly cheap (> 3 kr below the recent market) with no nearby report agreeing. */
+  unconfirmed: boolean;
   distanceKm: number;
   netSavingNok: number | null;
+}
+
+/** How many stations in the radius have a current price (pre-jump prices are hidden, not shown). */
+export interface Coverage {
+  current: number;
+  hiddenOutdated: number;
+  jumpDetected: boolean;
 }
 
 export interface StationsResponse {
@@ -41,6 +50,7 @@ export interface StationsResponse {
   radiusKm: number;
   refPrice: number | null;
   generatedAt: string;
+  coverage: Coverage;
   stations: StationItem[];
 }
 
@@ -70,11 +80,14 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
   const maxAgeMs = MAX_AGE_HOURS * 3_600_000;
   const staleMs = STALE_HOURS * 3_600_000;
 
-  // Area-wide recent median from all rows (not just the radius), to spot prices that predate a jump.
-  const recentMed = recentMedian(
-    rows.map((r) => ({ price: r.price, t: Date.parse(r.observedAt) })).filter((p) => Number.isFinite(p.t)),
-    nowMs,
-  );
+  // Area-wide view from all rows (not just the radius): spot prices that predate a market-wide jump
+  // and recent prices that are implausibly cheap (src/core/priceJump.ts).
+  const placed: PlacedPrice[] = rows
+    .map((r) => ({ id: r.id, lat: r.lat, lon: r.lon, price: r.price, t: Date.parse(r.observedAt) }))
+    .filter((p) => Number.isFinite(p.t) && nowMs - p.t <= maxAgeMs);
+  const recentMed = recentMedian(placed, nowMs);
+  const outdatedAreaWide = placed.filter((p) => isOutdated(p, nowMs, recentMed)).length;
+  let hiddenOutdated = 0;
 
   const kept: Array<Omit<StationItem, 'netSavingNok'> & { exactKm: number; ageMs: number }> = [];
   for (const r of rows) {
@@ -84,6 +97,11 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
     if (nowMs - t > maxAgeMs) continue;
     const exactKm = haversineKm(o.origin, r);
     if (exactKm > o.radiusKm) continue;
+    // Prices from before today's market-wide jump are hidden: an old number is worse than none.
+    if (isOutdated({ price: r.price, t }, nowMs, recentMed)) {
+      hiddenOutdated++;
+      continue;
+    }
     kept.push({
       id: r.id,
       name: r.name,
@@ -94,8 +112,8 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
       price: r.price,
       observedAt: r.observedAt,
       ageMinutes: Math.floor(ageMs / 60_000),
-      // Outdated (before a market-wide jump) is treated like stale: greyed, ranked last, not in the reference.
-      stale: ageMs > staleMs || isOutdated({ price: r.price, t }, nowMs, recentMed),
+      stale: ageMs > staleMs,
+      unconfirmed: isUnconfirmed({ id: r.id, lat: r.lat, lon: r.lon, price: r.price, t }, placed, nowMs, recentMed),
       distanceKm: round2(exactKm),
       exactKm,
       ageMs,
@@ -103,7 +121,7 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
   }
 
   const level = o.fuel === 'diesel' && typeof o.osloLevel === 'number' && Number.isFinite(o.osloLevel) ? o.osloLevel : null;
-  const refPrice = level ?? median(kept.filter((k) => !k.stale).map((k) => k.price));
+  const refPrice = level ?? median(kept.filter((k) => !k.stale && !k.unconfirmed).map((k) => k.price));
 
   const stations: StationItem[] = kept.map(({ exactKm: _e, ageMs: _a, ...k }) => ({
     ...k,
@@ -111,7 +129,8 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
   }));
   stations.sort(
     (a, b) =>
-      Number(a.stale) - Number(b.stale) ||
+      // Confirmed fresh first, then unconfirmed, then stale.
+      Number(a.stale) * 2 + Number(a.unconfirmed) - (Number(b.stale) * 2 + Number(b.unconfirmed)) ||
       (b.netSavingNok ?? -Infinity) - (a.netSavingNok ?? -Infinity) ||
       a.price - b.price ||
       a.distanceKm - b.distanceKm ||
@@ -124,6 +143,7 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
     radiusKm: o.radiusKm,
     refPrice,
     generatedAt: o.now.toISOString(),
+    coverage: { current: stations.length, hiddenOutdated, jumpDetected: outdatedAreaWide >= 5 },
     stations,
   };
 }

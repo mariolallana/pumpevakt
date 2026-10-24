@@ -40,11 +40,27 @@ describe('jump-aware Oslo level and station list (2026-10-24 scenario)', () => {
     expect(lvl.median).toBe(27.5);
   });
 
-  it('station list ranks the recent bargain first and sinks pre-jump prices as stale', () => {
-    const rows = all.map((x) => ({ ...x.s, price: x.price, observedAt: new Date(x.t).toISOString() }));
-    const res = buildStations(rows, { fuel: 'diesel', origin: { lat: 59.9111, lon: 10.7528 }, radiusKm: 10, now, osloLevel: 27.5, tankL: 50, consumptionL100: 6.5 });
+  const opts = { fuel: 'diesel' as const, origin: { lat: 59.9111, lon: 10.7528 }, radiusKm: 10, now, osloLevel: 27.5, tankL: 50, consumptionL100: 6.5 };
+  const toRows = (xs: typeof all) => xs.map((x) => ({ ...x.s, price: x.price, observedAt: new Date(x.t).toISOString() }));
+
+  it('hides pre-jump prices and reports coverage', () => {
+    const res = buildStations(toRows(all), opts);
+    expect(res.stations.some((s) => s.price === 24.4)).toBe(false);
+    expect(res.coverage).toEqual({ current: 16, hiddenOutdated: 25, jumpDetected: true });
+  });
+
+  it('a lone recent price > 3 kr below the market is unconfirmed and ranked after confirmed ones', () => {
+    const res = buildStations(toRows(all), opts);
+    const b = res.stations.find((s) => s.id === 's200')!;
+    expect(b.unconfirmed).toBe(true);
+    expect(res.stations.at(-1)!.id).toBe('s200');
+    expect(res.stations.slice(0, 15).every((s) => !s.unconfirmed && s.price === 27.5)).toBe(true);
+  });
+
+  it('a neighbour reporting a similar price confirms the bargain', () => {
+    const twin = { s: { ...station(201), lat: station(200).lat + 0.005 }, price: 23.1, t: minsAgo(40) };
+    const res = buildStations(toRows([...all, twin]), opts);
     expect(res.stations[0].id).toBe('s200');
-    expect(res.stations.filter((s) => s.price === 24.4).every((s) => s.stale)).toBe(true);
-    expect(res.stations.slice(0, 16).every((s) => !s.stale)).toBe(true);
+    expect(res.stations[0].unconfirmed).toBe(false);
   });
 });

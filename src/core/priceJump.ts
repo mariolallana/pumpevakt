@@ -3,6 +3,7 @@
 // still looks "fresh" (≤ 6 h) but is out of date. Rule: a price older than RECENT_HOURS that is at least
 // JUMP_NOK below the median of prices observed within RECENT_HOURS (needs MIN_RECENT of them) is outdated.
 // Recent cheap prices are kept: they may be genuine bargains (the outlier alarm's whole point).
+import { haversineKm } from './geo';
 import { median } from './stats';
 
 export const RECENT_HOURS = 2;
@@ -24,4 +25,29 @@ export function recentMedian(prices: TimedPrice[], nowMs: number): number | null
 export function isOutdated(p: TimedPrice, nowMs: number, recentMed: number | null): boolean {
   if (recentMed === null) return false;
   return nowMs - p.t > RECENT_HOURS * 3_600_000 && recentMed - p.price >= JUMP_NOK;
+}
+
+// Implausible recent prices (user-testing 2026-10-24: Circle K Bjerke reported 23.23 while Circle K
+// Abildsø was 28.68 and Kiellands Plass 29.18). Real Oslo bargains are rarely > ~2 kr below the market.
+export const UNCONFIRMED_NOK = 3.0; // a recent price this far below the recent median is suspicious…
+export const AGREE_KM = 3; // …unless another recent price within this distance…
+export const AGREE_NOK = 0.5; // …is within this many kr of it (neighbour agreement confirms it).
+
+export interface PlacedPrice extends TimedPrice {
+  id: string;
+  lat: number;
+  lon: number;
+}
+
+/** True if `p` is recent but implausibly cheap and no recent neighbour backs it up. */
+export function isUnconfirmed(p: PlacedPrice, all: PlacedPrice[], nowMs: number, recentMed: number | null): boolean {
+  const recentMs = RECENT_HOURS * 3_600_000;
+  if (recentMed === null || nowMs - p.t > recentMs || recentMed - p.price < UNCONFIRMED_NOK) return false;
+  return !all.some(
+    (q) =>
+      q.id !== p.id &&
+      nowMs - q.t <= recentMs &&
+      Math.abs(q.price - p.price) <= AGREE_NOK &&
+      haversineKm(p, q) <= AGREE_KM,
+  );
 }
