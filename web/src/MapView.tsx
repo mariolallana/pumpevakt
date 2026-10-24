@@ -87,12 +87,12 @@ export default function MapView({ origin, radiusKm, stations, refPrice, selected
       entry.btn.textContent = full ? `${arrow}${price2(s.price)}` : arrow || '•';
       entry.btn.dataset.compact = String(!full);
       entry.btn.dataset.tone = d?.tone ?? 'neutral';
-      entry.btn.dataset.stale = String(s.stale || s.unconfirmed);
+      entry.btn.dataset.stale = String(s.stale || s.unconfirmed || s.outdated);
       entry.btn.setAttribute('aria-pressed', String(selected));
       entry.btn.style.zIndex = selected ? '3' : full ? String(2 + (TOP_PILLS - rank) / 100) : '1';
       entry.btn.setAttribute(
         'aria-label',
-        `${s.name}, ${price2(s.price)} kroner per litre${d ? `, ${d.text}` : ''}${s.stale ? ', stale price' : s.unconfirmed ? ', unconfirmed price' : ''}`,
+        `${s.name}, ${price2(s.price)} kroner per litre${d ? `, ${d.text}` : ''}${s.outdated ? ', old price, probably higher now' : s.stale ? ', stale price' : s.unconfirmed ? ', unconfirmed price' : ''}`,
       );
     });
     for (const [id, e] of markers.current) {

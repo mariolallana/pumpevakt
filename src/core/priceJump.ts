@@ -1,8 +1,9 @@
 // Jump-aware freshness (docs/spec-flaws.md F19). Norwegian pump prices jump market-wide once a day
 // (seen 2026-10-24: Oslo diesel median 24.43 → 27.45 within ~2 h). A price observed before the jump
 // still looks "fresh" (≤ 6 h) but is out of date. Rule: a price older than RECENT_HOURS that is at least
-// JUMP_NOK below the median of prices observed within RECENT_HOURS (needs MIN_RECENT of them) is outdated.
-// Recent cheap prices are kept: they may be genuine bargains (the outlier alarm's whole point).
+// JUMP_NOK below the recent median is outdated. Recent cheap prices are kept: they may be genuine bargains
+// (the outlier alarm's whole point). Outdated prices are flagged, never hidden (F22: users looked for
+// stations they could see on the street).
 import { haversineKm } from './geo';
 import { median } from './stats';
 
@@ -15,10 +16,16 @@ export interface TimedPrice {
   t: number; // epoch ms of observation
 }
 
-/** Median of prices observed within RECENT_HOURS of `nowMs`, or null if fewer than MIN_RECENT. */
+/**
+ * Median of the prices observed within RECENT_HOURS of `nowMs`, topped up to the MIN_RECENT newest ones when
+ * fewer were reported (evenings are quiet: a fixed 2 h window would switch the rule off, F22).
+ * Null if there are fewer than MIN_RECENT prices in total.
+ */
 export function recentMedian(prices: TimedPrice[], nowMs: number): number | null {
-  const recent = prices.filter((p) => nowMs - p.t <= RECENT_HOURS * 3_600_000).map((p) => p.price);
-  return recent.length >= MIN_RECENT ? median(recent) : null;
+  if (prices.length < MIN_RECENT) return null;
+  const newestFirst = [...prices].sort((a, b) => b.t - a.t);
+  const inWindow = newestFirst.filter((p) => nowMs - p.t <= RECENT_HOURS * 3_600_000).length;
+  return median(newestFirst.slice(0, Math.max(MIN_RECENT, inWindow)).map((p) => p.price));
 }
 
 /** True if `p` predates a market-wide jump that the recent median reveals. */
