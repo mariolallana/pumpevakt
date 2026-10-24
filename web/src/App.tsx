@@ -14,6 +14,8 @@ import {
 import { age, price2 } from './format';
 import { MarketCard } from './MarketCard';
 import { ListSkeleton, StationList } from './StationList';
+import { FeedbackPanel } from './FeedbackPanel';
+import { feedbackKey } from './feedback';
 
 const MapView = lazy(() => import('./MapView'));
 
@@ -36,6 +38,8 @@ export default function App() {
   const [marketLoading, setMarketLoading] = useState(true);
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [fbKey] = useState<string | null>(() => feedbackKey());
+  const [noteOpen, setNoteOpen] = useState(false);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -240,11 +244,28 @@ export default function App() {
           </div>
         ) : (
           <div className={loading ? 'opacity-60 transition-opacity' : ''}>
-            <StationList stations={stations} refPrice={refPrice} selectedId={selectedId} onSelect={setSelectedId} />
+            <StationList
+              stations={stations}
+              refPrice={refPrice}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              feedback={fbKey ? { key: fbKey, fuel, where: origin ?? undefined } : undefined}
+            />
           </div>
         )}
       </section>
 
+      {fbKey && (
+        <div className="px-4 pb-4">
+          {noteOpen ? (
+            <FeedbackPanel feedbackKey={fbKey} fuel={fuel} where={origin ?? undefined} onDone={() => setNoteOpen(false)} />
+          ) : (
+            <button type="button" onClick={() => setNoteOpen(true)} className="min-h-11 w-full rounded-lg border border-line text-sm font-medium">
+              📝 Add a note (tap a station to rate its price)
+            </button>
+          )}
+        </div>
+      )}
       <footer className="border-t border-line px-4 py-4 text-xs text-muted">
         Prices: <a className="underline" href="https://drivstoffapp.no" target="_blank" rel="noopener noreferrer">drivstoffapp.no</a> ·
         Map © <a className="underline" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>,{' '}

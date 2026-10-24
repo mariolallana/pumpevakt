@@ -1,6 +1,7 @@
 // Station list sorted by net saving (server order). The accessible mirror of the map.
-import { useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
 import type { StationItem } from './api';
+import { FeedbackPanel } from './FeedbackPanel';
 import { age, delta, extraBrand, km, navUrl, price2, saving, toneClass } from './format';
 
 interface Props {
@@ -8,9 +9,11 @@ interface Props {
   refPrice: number | null;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** When set (owner's feedback key), the selected row shows the 👍/👎/note panel. */
+  feedback?: { key: string; fuel: string; where?: { lat: number; lon: number } };
 }
 
-export function StationList({ stations, refPrice, selectedId, onSelect }: Props) {
+export function StationList({ stations, refPrice, selectedId, onSelect, feedback }: Props) {
   const refs = useRef(new Map<string, HTMLLIElement>());
 
   useEffect(() => {
@@ -28,8 +31,8 @@ export function StationList({ stations, refPrice, selectedId, onSelect }: Props)
         const doubtful = s.stale || s.unconfirmed;
         const valueTone = (t: keyof typeof toneClass) => (doubtful ? 'text-muted' : toneClass[t]);
         return (
+          <Fragment key={s.id}>
           <li
-            key={s.id}
             ref={(n) => {
               if (n) refs.current.set(s.id, n);
               else refs.current.delete(s.id);
@@ -79,6 +82,12 @@ export function StationList({ stations, refPrice, selectedId, onSelect }: Props)
               <span aria-hidden="true">🧭</span>
             </a>
           </li>
+          {selected && feedback && (
+            <li className="px-4 pb-3">
+              <FeedbackPanel feedbackKey={feedback.key} fuel={feedback.fuel} station={s} where={feedback.where} />
+            </li>
+          )}
+          </Fragment>
         );
       })}
     </ol>
