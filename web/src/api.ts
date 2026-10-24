@@ -71,6 +71,8 @@ export interface OutlookResponse {
   levelAt: string | null;
   norm: { day: string | null; level: number | null; normal: number | null; nDays: number; delta: number | null };
   history: Array<{ day: string; levels: Partial<Record<ChainGroup, number>> }>;
+  spread: Array<{ day: string; p25: number; p50: number; p75: number }>;
+  wdi: Array<{ day: string; value: number }>;
 }
 
 /** Fuels the outlook covers (enough reports for chain levels and rise detection). */

@@ -209,8 +209,31 @@ describe('GET /api/outlook', () => {
       { day: '2026-10-24', levels: { all: 25.2, circlek: 25.2 } },
     ]);
     expect(o.norm).toMatchObject({ day: '2026-10-24', level: 25.2, nDays: 1, normal: null });
+    expect(o.spread).toEqual([]); // 5 reports today < 20, nothing stored
+    expect(o.wdi).toEqual([]);
     expect(await outlookHandler(url('/api/outlook?fuel=petrol95'), env(), now)).toMatchObject({ verdict: 'normal', level: 28.9, rise: null });
     await expect(outlookHandler(url('/api/outlook?fuel=petrol98'), env(), now)).rejects.toThrow(/fuel/);
+  });
+
+  it('spread: stored days plus live today (≥ 20 reports); wholesale for diesel only', async () => {
+    const now = new Date('2026-10-24T15:00:00.000Z');
+    for (let i = 0; i < 20; i++) {
+      await station(`s${i}`, 59.91 + i * 0.001, 10.75, 'Uno X');
+      await price(`s${i}`, 'diesel', 24 + i * 0.1, '2026-10-24T08:00:00.000Z');
+    }
+    await t.db
+      .prepare(
+        `INSERT INTO market_daily (day, series, value) VALUES ('2026-10-22', 'p25_diesel', 23.9), ('2026-10-22', 'p50_diesel', 24.3), ('2026-10-22', 'p75_diesel', 25.1),
+         ('2026-10-23', 'p50_diesel', 24.2), ('2026-10-23', 'wdi_nok_l', 8.7)`,
+      )
+      .run();
+    const o = await outlookHandler(url('/api/outlook?fuel=diesel'), env(), now);
+    expect(o.spread).toEqual([
+      { day: '2026-10-22', p25: 23.9, p50: 24.3, p75: 25.1 }, // 10-23 has only p50 → left out
+      { day: '2026-10-24', p25: 24.48, p50: 24.95, p75: 25.42 },
+    ]);
+    expect(o.wdi).toEqual([{ day: '2026-10-23', value: 8.7 }]);
+    expect((await outlookHandler(url('/api/outlook?fuel=petrol95'), env(), now)).wdi).toEqual([]);
   });
 
   it("stations use the run's Oslo-wide rise: a pre-rise price is flagged outdated with no saving", async () => {

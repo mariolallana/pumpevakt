@@ -6,6 +6,7 @@ import { buildStations, MAX_AGE_HOURS, type StationsResponse } from './core/stat
 import { osloDate } from './core/time';
 import { WDI_SERIES } from './core/wdi';
 import { amLevels, amSeries, CHAIN_FUELS, GROUPS, type ChainFuel, type Group } from './core/chains';
+import { daySpread, QUANTILES, spreadSeries } from './core/dailySpread';
 import { norm, verdict, type Norm, type Verdict } from './core/outlook';
 import type { Rise } from './core/rise';
 import { brandedReportsSince, latestOkPricesRun, latestStationPrices, marketSeries, marketSeriesMany } from './db';
@@ -39,6 +40,10 @@ export interface OutlookResponse {
   norm: Norm;
   /** Morning (06–12) level per chain, one row per day with data, oldest first; today's row is live. */
   history: Array<{ day: string; levels: Partial<Record<Group, number>> }>;
+  /** p25/p50/p75 of every price reported each day (oldest first, days with ≥ 20 reports; today is live). */
+  spread: Array<{ day: string; p25: number; p50: number; p75: number }>;
+  /** Official wholesale diesel cost, NOK/L (FRED ULSD × Norges Bank); empty for petrol. */
+  wdi: Array<{ day: string; value: number }>;
 }
 
 export const OUTLOOK_DAYS = 30;
@@ -130,20 +135,33 @@ export async function outlookHandler(url: URL, env: Env, now = new Date()): Prom
   if (!CHAIN_FUELS.includes(fuel)) throw new BadInput(`fuel must be one of ${CHAIN_FUELS.join(', ')}`);
   const today = osloDate(now);
   const since = osloDate(new Date(now.getTime() - (OUTLOOK_DAYS - 1) * 86_400_000));
-  const [run, points, reports] = await Promise.all([
+  const [run, points, reports, wdi] = await Promise.all([
     latestOkPricesRun(env.DB),
-    marketSeriesMany(env.DB, GROUPS.map((g) => amSeries(g, fuel)), since),
+    marketSeriesMany(env.DB, [...GROUPS.map((g) => amSeries(g, fuel)), ...QUANTILES.map((q) => spreadSeries(q, fuel))], since),
     // Today's morning levels are computed live; earlier days come from the market job.
     brandedReportsSince(env.DB, new Date(now.getTime() - 26 * 3_600_000).toISOString()),
+    fuel === 'diesel' ? marketSeries(env.DB, WDI_SERIES, since) : Promise.resolve([]),
   ]);
+  const live = [...amLevels(reports, today), ...daySpread(reports, today)];
+  const stored = points.filter((x) => x.day !== today);
+  const spreadByDay = new Map<string, Record<string, number>>();
+  for (const pt of [...stored, ...live]) {
+    const q = QUANTILES.find((x) => spreadSeries(x, fuel) === pt.series);
+    if (q) spreadByDay.set(pt.day, { ...spreadByDay.get(pt.day), [`p${q}`]: pt.value });
+  }
+  const spread = [...spreadByDay.entries()]
+    .filter(([, v]) => v.p25 !== undefined && v.p50 !== undefined && v.p75 !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : 1))
+    .map(([day, v]) => ({ day, p25: v.p25!, p50: v.p50!, p75: v.p75! }));
   const byDay = new Map<string, Partial<Record<Group, number>>>();
-  for (const pt of [...points.filter((x) => x.day !== today), ...amLevels(reports, today)]) {
+  for (const pt of [...stored, ...live]) {
     const g = GROUPS.find((x) => amSeries(x, fuel) === pt.series);
     if (!g) continue;
     byDay.set(pt.day, { ...byDay.get(pt.day), [g]: pt.value });
   }
   const history = [...byDay.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([day, levels]) => ({ day, levels }));
-  const level = fuel === 'diesel' ? (run?.levels?.diesel ?? run?.level ?? null) : (run?.levels?.[fuel] ?? null);
+  const rawLevel = fuel === 'diesel' ? (run?.levels?.diesel ?? run?.level ?? null) : (run?.levels?.[fuel] ?? null);
+  const level = rawLevel === null ? null : Math.round(rawLevel * 100) / 100;
   const rise = run?.rises?.[fuel] ?? null;
   return {
     fuel,
@@ -154,6 +172,8 @@ export async function outlookHandler(url: URL, env: Env, now = new Date()): Prom
     levelAt: run?.at ?? null,
     norm: norm(history.filter((h) => h.levels.all !== undefined).map((h) => ({ day: h.day, value: h.levels.all! }))),
     history,
+    spread,
+    wdi,
   };
 }
 
