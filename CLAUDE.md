@@ -1,26 +1,27 @@
 # CLAUDE.md: standing instructions for AI agents
 
-Pumpevakt is a personal PWA that finds the cheapest fuel near the user in Oslo and sends alerts on market drops and outlier stations. **The specs in `docs/` are the source of truth.** Read the relevant doc before changing a feature, and update the doc in the same PR if behaviour changes.
+Pumpevakt is a single-user Telegram bot (with a later read-only dashboard) for Oslo fuel prices. It sends market alarms from open data (the Wholesale Diesel Index) and station prices once a source is unlocked. **The specs in `docs/` are the source of truth.** Read the relevant doc first, and update it in the same PR if behaviour changes. Log design decisions in `docs/10-design-review.md`.
 
-## Stack (do not swap without an ADR note in docs/02)
-Next.js 15 (App Router, TS strict) · Tailwind v4 + shadcn/ui · MapLibre + OpenFreeMap · TanStack Query · Supabase (Postgres + PostGIS, Edge Functions on Deno, pg_cron) · Telegram (grammy) · Resend + React Email · Vitest · Playwright · pnpm workspaces.
+## Principles: KISS, always
+- One Worker, one D1 database, one language. Don't add services, frameworks or tables without a design-review entry.
+- One user. No auth, profiles or multi-tenancy. Config lives in `wrangler.toml` vars.
+- All logic in `src/core/` as pure, tested TypeScript. No business logic in SQL.
+- Build only what is ungated (docs/01 §4). Gated features wait for their unlock.
 
-## Layout
-- `apps/web`: UI only. Talks to Supabase through RPCs and tables under RLS.
-- `packages/core`: pure TS (types, alert maths, net saving). **No I/O.** 100 % unit-tested.
-- `supabase/migrations`: numbered, append-only. Never edit an applied migration. Add a new one instead.
-- `supabase/functions/*`: thin handlers. `_shared/adapters/*` implement `SourceAdapter` (docs/05 §4).
+## Stack
+Cloudflare Workers + D1 · TypeScript strict · grammY · Vitest · Wrangler · GitHub Actions. Phase 4 only: Vite + React + Tailwind + shadcn/ui + MapLibre/OpenFreeMap on Cloudflare Pages.
 
 ## Rules
-1. **Data sources:** only use sources listed as allowed in docs/01. Never reverse-engineer private APIs, mint tokens, spoof clients or bypass robots.txt or anti-bot measures. If a source is unavailable, use the `mock` adapter and say so.
-2. **Prices** are `numeric(6,2)` NOK/L incl. VAT. Always carry `observed_at`. Never show a price without its age. Exclude tax-free diesel.
-3. **Alerts** must be idempotent (`dedupe_key`) and respect quiet hours, the daily cap and revalidation (docs/04 §5). Any change to the alert maths needs the docs/04 §7 fixtures passing.
-4. **UI** uses the tokens in docs/06 §2. Prices use the mono tabular font. Every screen has loading, empty, stale and offline states. Check 375 px and 1440 px in light and dark.
-5. **Secrets** never go in code or `NEXT_PUBLIC_*` (except the anon key). Names are listed in docs/07 §4.
-6. Before finishing: `pnpm lint && pnpm typecheck && pnpm test`. Report failures honestly.
-7. Small PRs, one phase or feature each. Conventional commits.
+1. **Data:** only the sources marked allowed in docs/01. Never reverse-engineer private APIs, mint tokens, bypass App Check, robots.txt or anti-bot measures. Always attribute ODbL, SSB, FRED and Norges Bank.
+2. **Prices:** NOK/L incl. VAT with an `observed_at`. Never show a price without its age. Exclude tax-free diesel.
+3. **Alerts:** idempotent `dedupe_key`, quiet hours, 3/day cap, shadow mode. Changing `signals.ts` requires the docs/04 §7 fixtures to pass.
+4. **Worker CPU:** keep each invocation light (free plan, 10 ms CPU). Heavy parsing goes in GitHub Actions scripts.
+5. **Secrets:** Wrangler or GitHub secrets only. Never commit `.dev.vars`.
+6. Before finishing: `npm run typecheck && npm test`. Report failures honestly.
+7. Small PRs, one phase each, conventional commits.
 
-## Useful commands (once scaffolded)
-- `pnpm dev`: web app · `supabase start`: local backend (Docker)
-- `supabase db push`: apply migrations · `supabase functions deploy <name>`
-- `pnpm test`: Vitest · `pnpm e2e`: Playwright
+## Commands
+- `node scripts/probe-sources.mjs`: check that all open sources are alive
+- `npx wrangler dev`: local Worker · `npx wrangler deploy`
+- `npx wrangler d1 migrations apply pumpevakt --remote`
+- `npm test`: Vitest

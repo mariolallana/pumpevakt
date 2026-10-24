@@ -1,35 +1,41 @@
-# Pumpevakt ⛽ — personal fuel-price watcher for Oslo
+# Pumpevakt ⛽ — know when (and where) to fill up in Oslo
 
-> Working name. *Pumpevakt* means "pump guard". The app finds the cheapest diesel or petrol near you and warns you when prices drop.
+> Working name. *Pumpevakt* means "pump guard". It's a personal Telegram bot, with a dashboard later.
 
-A small full-stack PWA that runs entirely on free tiers and never needs your PC switched on. It does three things:
+**What it does today, on 100 % open data:**
+- 📉📈 **Market alarms**: tells me when the diesel market is falling sharply (wait) or rising (fill up now). It uses a Wholesale Diesel Index built from FRED and Norges Bank data, which tracks Norwegian pump prices with **0.92 correlation** over 10 years ([backtest](docs/01-data-sources.md#2-the-creative-unlock-the-wholesale-diesel-index-wdi)).
+- `/status`, `/near` and `/p` (report a price) in Telegram, with 158 Oslo stations from open ODbL data.
 
-1. **Find**: shows live diesel and petrol prices on a map and in a list, ranked by *real* saving (price minus the cost of the detour) within a radius of you.
-2. **Market-drop alarm**: notifies you when the general price level around Oslo falls sharply compared with its recent history.
-3. **Outlier alarm**: notifies you when one station around Oslo is priced well below the rest.
+**Unlocks later:** the cheap-station alarm and a live-price map, as soon as a station-level price source opens up ([gates](docs/01-data-sources.md#4-gates-and-unlocks)).
 
-Alerts go to **Telegram** (instant, free), **email** (Resend) and, optionally, **Web Push**.
+## Feasibility: run it yourself
+```bash
+node scripts/probe-sources.mjs        # tests all 8 open sources (OK / STALE / FAIL)
+node scripts/backtest-wholesale.mjs   # WDI vs SSB official pump prices, 2015 → today
+GOOGLE_MAPS_API_KEY=… node scripts/probe-google-places.mjs   # does Google have Oslo fuel prices?
+```
 
-## Spec documents (read in order)
+## Architecture in one line
+One **Cloudflare Worker** (cron jobs + Telegram webhook + read-only JSON API) with **D1** (SQLite), deployed by GitHub Actions. Free, serverless, and nothing runs on my PC.
 
-| # | Doc | What it decides |
-|---|-----|-----------------|
-| 00 | [Product requirements](docs/00-product-requirements.md) | Users, jobs-to-be-done, scope (MVP / v1 / later), success metrics |
-| 01 | [Data sources & risk](docs/01-data-sources.md) | **Where prices come from.** This is the #1 project risk, so read it first |
-| 02 | [Architecture](docs/02-architecture.md) | Components, free-tier budget, how it runs without your PC |
-| 03 | [Data model](docs/03-data-model.md) + [SQL](supabase/migrations/0001_init.sql) | Postgres/PostGIS schema, views, retention |
-| 04 | [Alert engine](docs/04-alert-engine.md) | Exact algorithms, thresholds, de-duplication, message formats |
-| 05 | [API spec](docs/05-api-spec.md) | Edge functions, RPCs, ingestion adapter contract |
-| 06 | [UX / UI spec](docs/06-ux-ui-spec.md) | Screens, design system, states, accessibility |
-| 07 | [Tech stack & vibe-coding toolkit](docs/07-tech-stack.md) | Chosen tools, versions and why |
-| 08 | [Build plan](docs/08-build-plan.md) | Phased milestones with ready-to-paste Claude Code prompts |
-| 09 | [Ops, security & cost](docs/09-ops-security-cost.md) | Secrets, monitoring, limits, legal |
-| — | [CLAUDE.md](CLAUDE.md) | Standing instructions for AI coding agents working in this repo |
-
-## One-paragraph architecture
-
-`Next.js PWA (Vercel)` ⇄ `Supabase (Postgres + PostGIS, Auth, Edge Functions, pg_cron)`. A `pg_cron` job calls the `ingest` edge function every 20 minutes. The function pulls prices from pluggable **source adapters**, writes append-only observations, refreshes area statistics, then runs the **alert engine**, which sends messages through Telegram and Resend. GitHub Actions runs a daily health check and a weekly backup. Everything runs in the cloud on free tiers.
+## Specs
+| # | Doc |
+|---|---|
+| 00 | [Product requirements](docs/00-product-requirements.md) |
+| 01 | [Data sources & feasibility](docs/01-data-sources.md) ← start here |
+| 02 | [Architecture](docs/02-architecture.md) |
+| 03 | [Data model](docs/03-data-model.md) · [schema.sql](db/schema.sql) |
+| 04 | [Alert engine](docs/04-alert-engine.md) |
+| 05 | [Interfaces (bot, routes, adapters)](docs/05-api-spec.md) |
+| 06 | [UX / UI](docs/06-ux-ui-spec.md) |
+| 07 | [Tech stack](docs/07-tech-stack.md) |
+| 08 | [Build plan + Claude Code prompts](docs/08-build-plan.md) |
+| 09 | [Ops, security, cost](docs/09-ops-security-cost.md) |
+| 10 | [Design review log](docs/10-design-review.md) |
 
 ## Status
+- ✅ Phase 0 (feasibility) done 2026-10-24.
+- ⏳ Phase 0b: Google Places probe and partner emails.
+- Next: Phase 1.
 
-Phase 0: specs written (2026-10-24). Next step: the **data-source spike** ([08 – Phase 0](docs/08-build-plan.md#phase-0--data-source-spike-go--no-go)).
+Data: FRED · Norges Bank · SSB (CC BY 4.0) · OpenVan · stations © Drivstoffpriser contributors & OpenStreetMap contributors (ODbL).

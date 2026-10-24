@@ -1,118 +1,90 @@
-# 02 · Architecture
+# 02 · Architecture (lean v2)
 
 ## 1. Principles
+1. **One deployable.** A single Cloudflare Worker handles cron jobs, the Telegram webhook and (later) a JSON API for the dashboard.
+2. **One database.** Cloudflare D1 (SQLite). About 160 stations and a few thousand rows a year don't need Postgres or PostGIS. Radius search is a haversine in TypeScript over 160 rows.
+3. **One copy of the logic.** All maths lives in `src/core/` as pure TypeScript and is unit-tested. SQL only stores and reads.
+4. **Heavy lifting outside the Worker.** Big one-off jobs (the station import, backups) run in GitHub Actions, which keeps the Worker within its free CPU budget.
+5. **Nothing on my PC.** Cloudflare and GitHub run everything.
 
-1. **Zero servers to babysit.** Managed free tiers only. Nothing runs on my PC.
-2. **One backend platform.** Supabase handles DB, auth, scheduled jobs and functions, which keeps the moving parts to a minimum.
-3. **Source-agnostic core.** Adapters at the edge, normalised data inside ([01](01-data-sources.md)).
-4. **Store changes, not polls.** Write an append-only row only when a price *changes*. This keeps the DB tiny.
-5. **The database does the maths.** PostGIS for radius queries, SQL views for statistics. Edge functions stay thin.
-
-## 2. System diagram
+## 2. Diagram
 
 ```
-                         ┌───────────────────────────────────────────────┐
-  Phone / laptop  ─────► │  Vercel (Hobby)                                │
-  (installable PWA)      │  Next.js 15 app · Tailwind · shadcn/ui         │
-                         │  MapLibre GL + OpenFreeMap tiles               │
-                         └──────────────┬────────────────────────────────┘
-                                        │ supabase-js (anon key + RLS)
-                                        ▼
- ┌──────────────────────────────── Supabase (Free) ───────────────────────────────┐
- │                                                                                 │
- │  Postgres 15 + PostGIS                     Edge Functions (Deno/TS)             │
- │  ├─ stations, prices (append-only)   ◄──── ingest      ◄── pg_cron  */20 min    │
- │  ├─ price_current (view/table)             │  ├─ adapters/partner|chain|mock    │
- │  ├─ area_stats_15m, area_baseline          │  ├─ normalise + dedupe + upsert    │
- │  ├─ alert_rules, alert_events              │  └─ calls evaluate_alerts()        │
- │  └─ profiles, saved_places, channels       notify      ◄── on new alert_events  │
- │                                            │  ├─ Telegram Bot API              │
- │  RPC: stations_near(), area_trend() …      │  └─ Resend (email)                │
- │  Auth: magic link (email)                  telegram-webhook (bot commands,     │
- │  pg_cron: ingest · stats · retention       │   crowd price photos → AI extract) │
- └─────────────────────────────────────────────────────────────────────────────────┘
-                                        ▲
- GitHub (repo mariolallana/pumpevakt)  │
- ├─ Actions: CI (lint, typecheck, tests) on PR
- ├─ Actions: deploy edge functions + migrations on push to main
- ├─ Actions: daily health check → Telegram if ingest stale > 2 h
- └─ Actions: weekly pg_dump backup → private release artifact
+        Telegram app (phone)                       Later: browser (Phase 4)
+              │  ▲                                        │
+     webhook  │  │ sendMessage                            │ GET /api/*
+              ▼  │                                        ▼
+ ┌──────────────────── Cloudflare Worker  "pumpevakt" ─────────────────────┐
+ │ fetch()      /telegram  → bot commands (/status /near /p /mute …)       │
+ │              /api/*     → read-only JSON for the dashboard (Phase 4)    │
+ │              /health    → last successful run per job                   │
+ │ scheduled()  06:30 & 17:30 UTC → market job: FRED + Norges Bank +       │
+ │                                   OpenVan → WDI → market alarm          │
+ │              every 12 h        → station-price job: adapters → prices   │
+ │                                   → outlier alarm (gated)               │
+ │ src/core/  (pure TS: wdi, signals, geo, netSaving, format) ← Vitest     │
+ └───────────────┬─────────────────────────────────────────────────────────┘
+                 │ D1 binding
+                 ▼
+     Cloudflare D1 (SQLite): stations · prices · market_daily · alerts · runs
+
+ GitHub (mariolallana/pumpevakt)
+   ci.yml      : typecheck + vitest on every PR
+   deploy.yml  : wrangler deploy + d1 migrations on push to main
+   weekly.yml  : refresh stations from Drivstoffpriser ODbL → D1 · d1 export backup · /health check
 ```
 
-## 3. Components
+## 3. Why this stack (challenge 6 and 7 in [10](10-design-review.md))
 
-| Component | Tech | Responsibility |
+| Need | Choice | Rejected and why |
 |---|---|---|
-| **Web app** | Next.js 15 (App Router, RSC), TypeScript, Tailwind v4, shadcn/ui, MapLibre GL JS, TanStack Query, Recharts | UI, geolocation (client-side), PWA install, Web Push subscription |
-| **DB** | Supabase Postgres + PostGIS | Source of truth, spatial queries, stats views, RLS |
-| **ingest** fn | Supabase Edge Function | Run adapters → upsert stations → insert changed prices → refresh stats → `evaluate_alerts()` |
-| **notify** fn | Edge Function | Drain pending `alert_events`, render templates, send via Telegram or Resend, mark delivered, retry with backoff |
-| **telegram-webhook** fn | Edge Function | `/start` linking, `/near`, `/cheapest`, `/mute 6h`, photo price reports, 👍/👎 feedback callbacks |
-| **Scheduler** | `pg_cron` + `pg_net` | Calls `ingest` every 20 min and `notify` every 2 min. Nightly retention and stats jobs |
-| **CI/CD and watchdog** | GitHub Actions | Tests, deploys, health check, backups |
+| Scheduler | Worker **Cron Triggers** | Supabase pg_cron → pg_net → Edge Function: three hops, hard to debug, and the project pauses after 7 idle days. GitHub Actions cron: delayed or skipped under load |
+| Webhook (Telegram) | Same Worker | A second service |
+| DB | **D1** | Supabase Postgres + PostGIS: overkill for 160 rows |
+| Web (Phase 4) | **Vite + React SPA** on Cloudflare Pages | Next.js: no server rendering needed, since all data is a tiny JSON API |
+| Language | TypeScript everywhere | — |
 
-### Why not…?
-- **Firebase**: no PostGIS or SQL views. Statistics would be painful.
-- **A Vercel cron as scheduler**: the Hobby plan limits cron frequency (daily). pg_cron has no such limit and lives next to the data.
-- **GitHub Actions as main scheduler**: 20-min schedules are delayed or skipped under load, and private repos only get 2,000 min/month. Fine for the daily watchdog, not for ingestion.
-- **A native app**: a PWA plus Telegram covers push on both iOS and Android with no app store.
+## 4. Flows
 
-## 4. Key flows
+**Market job** (twice daily):
+1. Fetch the last 60 days of ULSD and Brent (FRED CSV), USD/NOK (Norges Bank) and the national average (OpenVan).
+2. Upsert into `market_daily(day, series, value)`. Compute `wdi` for each day that has both inputs.
+3. `core/signals.ts` evaluates the market rule ([04](04-alert-engine.md)) → insert into `alerts` (with a `dedupe_key`). Shadow mode marks it as not sent.
+4. Send via Telegram. Write a `runs` row. On failure, retry once in the next cron; two consecutive failures trigger a Telegram "⚠️ data job failing" message.
 
-**A. Ingest (every 20 min)**
-1. `pg_cron` → `net.http_post(ingest)` with a service secret header.
-2. `ingest` runs the enabled adapters in parallel (per-adapter timeout 20 s). A failing adapter is logged to `ingest_runs` and doesn't block the others.
-3. For each observation: resolve `station_id` (via `station_source_ids`, else geo-match, else create). If the price differs from `price_current` → insert into `prices`. Otherwise just bump `price_current.last_seen_at`.
-4. Call `refresh_area_stats()` and then `evaluate_alerts(run_id)`. Both are SQL, see [04](04-alert-engine.md).
+**Station-price job** (every 12 h; every 30 min once a live source is unlocked): run the enabled adapters (`drivstoffpriser`, later `google_places` or `partner`), insert only *changed* prices, then evaluate the outlier rule (gated).
 
-**B. Find the best deal (client)**
-1. The browser gets GPS (or a saved place) and calls RPC `stations_near(lat, lon, radius_km, fuel)`.
-2. The DB returns stations with price, age, distance and `net_saving_nok`, computed with the user's tank size and consumption ([04 §4](04-alert-engine.md#4-net-saving-ranking)).
-3. Map and list render. Prices refresh with TanStack Query every 5 min while visible.
+**Bot command:** Telegram → `POST /telegram` (verifies the secret header and the chat allowlist) → handler → reply.
 
-**C. Alert**
-1. `evaluate_alerts` inserts `alert_events` (idempotent unique key).
-2. `notify` (pg_cron every 2 min) sends via each enabled channel in the user's settings, honouring quiet hours (deferred, not dropped).
+## 5. Free-tier budget (verify at setup — limits change)
 
-## 5. Free-tier budget (verify limits at setup — they change)
+| Service | Free limit (as known 2026) | Expected use |
+|---|---|---|
+| Workers | 100k requests/day, **10 ms CPU per invocation**, 5 cron triggers | < 200 requests/day. Jobs are network-bound (fetch time doesn't count as CPU) |
+| D1 | 5 GB, 5M rows read/day, 100k rows written/day | < 5 MB/yr, < 1k writes/day |
+| GitHub Actions | 2,000 min/month (private repo) | ~60 min/month |
+| Telegram Bot API | Free | — |
+| FRED / Norges Bank / SSB / OpenVan | Free, keyless | ~6 requests/day |
+| Optional AI photo extraction (later) | Claude Haiku 5.5 at cents/month, or Gemini Flash free tier | — |
 
-| Service | Free limit (as known 2026) | Our expected use | Headroom |
-|---|---|---|---|
-| Supabase DB | 500 MB | ~40 MB/yr (≈1k price changes/day × ~100 B, plus indexes) | >10× |
-| Supabase Edge Functions | 500k invocations/mo | ingest 2.2k + notify 22k + webhook ~1k ≈ 25k | 20× |
-| Supabase inactivity pause | Pauses after 7 days with no activity | pg_cron and API traffic keep it active. The watchdog alerts if paused | ✔ |
-| Vercel Hobby | Personal, non-commercial | 1 user | ✔ (move to Cloudflare Pages if this ever goes commercial) |
-| Resend | 3,000 emails/mo, 100/day | <100/mo | 30× |
-| Telegram Bot API | Free | <500 msgs/mo | ✔ |
-| OpenFreeMap tiles | Free, no key | personal | ✔ (attribution required) |
-| GitHub Actions | 2,000 min/mo (private repo) | CI ~200 + watchdog 30 + backup 10 | 8× |
-| AI for photo price extraction (v1) | Gemini Flash free tier, or Claude Haiku (pay per use, cents) | <100 photos/mo | ✔ |
+**CPU risk:** parsing the 420 KB station file can come close to 10 ms, which is why that import runs in GitHub Actions, not the Worker. If a job ever hits the limit, move it to the weekly Action or to the Workers paid plan ($5/month).
 
-## 6. Environments
-
-- `local`: `supabase start` (Docker) plus `next dev`, mock adapter only.
-- `prod`: one Supabase project and one Vercel project. No staging; preview deployments on Vercel PRs point at prod read-only data. Enough for a personal app.
-
-## 7. Repo layout (target)
+## 6. Repo layout
 
 ```
 pumpevakt/
-├─ CLAUDE.md
-├─ docs/                      # these specs
-├─ apps/web/                  # Next.js PWA
-│  ├─ app/(map)/page.tsx      # home: map + list
-│  ├─ app/station/[id]/       # detail
-│  ├─ app/trends/             # Oslo trend
-│  ├─ app/alerts/  app/settings/
-│  ├─ components/ ui/ (shadcn) map/ charts/
-│  └─ lib/ supabase.ts geo.ts format.ts
-├─ supabase/
-│  ├─ migrations/0001_init.sql …
-│  ├─ functions/ingest/  notify/  telegram-webhook/
-│  │   └─ _shared/adapters/{mock,partner,chain,crowd,ssb}.ts
-│  └─ seed/oslo_stations_osm.sql
-├─ packages/core/             # pure TS: types, alert maths, net-saving (unit-tested, shared)
-└─ .github/workflows/ ci.yml deploy.yml watchdog.yml backup.yml
+├─ CLAUDE.md · README.md · docs/
+├─ scripts/            probe-sources.mjs · backtest-wholesale.mjs · probe-google-places.mjs · import-stations.mjs
+├─ db/schema.sql       (D1 migrations live in db/migrations/)
+├─ src/
+│  ├─ index.ts         fetch() + scheduled() entry
+│  ├─ config.ts        single-user settings (typed, read from env vars)
+│  ├─ core/            wdi.ts · signals.ts · geo.ts · netSaving.ts · format.ts   ← pure, tested
+│  ├─ sources/         fred.ts · norgesBank.ts · openvan.ts · drivstoffpriser.ts · (googlePlaces.ts)
+│  ├─ bot/             commands.ts · telegram.ts
+│  └─ db.ts            typed D1 queries
+├─ test/               core/*.test.ts + fixtures/
+├─ web/                (Phase 4) Vite + React dashboard
+├─ wrangler.toml
+└─ .github/workflows/  ci.yml · deploy.yml · weekly.yml
 ```
-
-pnpm workspaces. Keep `packages/core` free of I/O so the alert maths can be tested with Vitest against fixtures.

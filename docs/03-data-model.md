@@ -1,47 +1,28 @@
-# 03 · Data model
+# 03 · Data model (D1 / SQLite)
 
-The authoritative schema is in [`supabase/migrations/0001_init.sql`](../supabase/migrations/0001_init.sql). This doc explains it.
+Schema: [`db/schema.sql`](../db/schema.sql). There are six tables. User and rule tables were removed on purpose: one user, with config in env vars (see [10](10-design-review.md) challenge 3).
 
-## Entity overview
-
-```
-stations 1─* station_source_ids          profiles 1─* saved_places
-stations 1─* prices (append-only)        profiles 1─* notification_channels
-stations 1─* price_current (1 per fuel)  profiles 1─* alert_rules 1─* alert_events
-area_stats_15m  (Oslo-area median etc. per 15-min bucket per fuel)
-area_baseline   (rolling baseline per fuel × hour-of-week)
-ingest_runs     (observability)          crowd_reports (v1)
-```
-
-## Tables
-
-| Table | Key columns | Notes |
+| Table | Purpose | Size / year |
 |---|---|---|
-| `stations` | `id uuid`, `name`, `brand`, `address`, `geom geography(Point)`, `osm_id`, `is_active` | Master data, seeded from OSM and enriched by sources |
-| `station_source_ids` | `(source, source_station_id)` PK → `station_id` | Cross-source matching |
-| `prices` | `id bigserial`, `station_id`, `fuel`, `price_nok numeric(6,2)`, `observed_at`, `source`, `confidence` | **Append-only, written only on change.** Index `(station_id, fuel, observed_at desc)` |
-| `price_current` | PK `(station_id, fuel)`, `price_nok`, `observed_at`, `last_seen_at`, `source`, `confidence` | Hot table for reads. Upserted by ingest |
-| `area_stats_15m` | PK `(area, fuel, bucket)`, `median`, `p10`, `p25`, `mad`, `n_fresh` | `area='oslo'` = stations within 25 km of Oslo S. Built from *fresh* prices only (≤ 6 h) |
-| `area_baseline` | PK `(area, fuel, how_band)`, `median_14d`, `median_28d`, `updated_at` | `how_band` = hour-of-week band (0–41, 4-hour bands). Recomputed nightly |
-| `profiles` | `id` (= auth.uid), `fuel`, `tank_l`, `consumption_l100`, `radius_km`, `sensitivity`, `quiet_from`, `quiet_to`, `tz` | One per user |
-| `saved_places` | `id`, `user_id`, `label`, `geom` | Home, Work … |
-| `notification_channels` | `id`, `user_id`, `kind` (`telegram`/`email`/`webpush`), `address jsonb`, `verified_at`, `enabled` | Telegram `chat_id`, email, push subscription |
-| `alert_rules` | `id`, `user_id`, `kind` (`market_drop`/`outlier`/`target_price`), `fuel`, `place_id`, `params jsonb`, `enabled` | Defaults are created when the profile is created |
-| `alert_events` | `id`, `rule_id`, `dedupe_key` UNIQUE, `payload jsonb`, `status` (`pending`/`sent`/`deferred`/`failed`), `sent_at`, `feedback` (`up`/`down`) | Idempotent by `dedupe_key` |
-| `ingest_runs` | `id`, `started_at`, `finished_at`, `source`, `n_obs`, `n_changes`, `error` | Watchdog reads this |
-| `crowd_reports` (v1) | `id`, `user_id`, `station_id`, `fuel`, `price_nok`, `photo_path`, `status` | Becomes a `prices` row on confirm |
+| `stations` | ~1,900 Norwegian stations from Drivstoffpriser ODbL (Oslo queries filter by distance). Refreshed weekly by GitHub Actions | ~2k rows, static |
+| `prices` | Append-only station prices, written **only on change** | Hundreds now, ~100k/yr once a live feed exists |
+| `market_daily` | One value per day per series (ULSD, Brent, USD/NOK, **WDI**, national averages, SSB) | ~2k rows |
+| `alerts` | Every signal, sent or shadow. `dedupe_key` makes them idempotent. Holds 👍/👎 feedback | < 200 |
+| `runs` | One row per job run. Feeds `/health` and the failure ping | ~1.5k, pruned to 30 days |
+| `settings` | Runtime toggles from the bot (`muted_until`, `shadow`) | a handful |
 
-## Enums
-- `fuel_type`: `diesel`, `petrol95`, `petrol98`, `hvo100`. (Tax-free diesel is deliberately absent.)
-- `alert_kind`: `market_drop`, `outlier`, `target_price`.
+## Config (env vars in `wrangler.toml` and secrets, typed in `src/config.ts`)
+
+| Key | Example | Notes |
+|---|---|---|
+| `HOME_LAT`, `HOME_LON` | 59.93, 10.80 | Used for `/near` when no location is shared |
+| `FUEL` | `diesel` | |
+| `TANK_L`, `CONSUMPTION_L100` | 50, 6.5 | Net-saving calculation |
+| `SENSITIVITY` | `normal` | `relaxed` / `normal` / `eager` ([04](04-alert-engine.md)) |
+| `QUIET_HOURS` | `22-07` | Europe/Oslo |
+| `ALLOWED_CHAT_IDS` | `123456789` | Comma list. The bot ignores everyone else |
+| secret `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` | — | `wrangler secret put` |
+| secret `GOOGLE_MAPS_API_KEY` (only if the probe passes) | — | |
 
 ## Retention
-- `prices`: keep forever. It is small and needed for history.
-- `area_stats_15m`: keep 400 days, then downsample to daily into `area_stats_daily` (nightly job).
-- `ingest_runs`: 30 days.
-- `alert_events`: 1 year.
-
-## Security (RLS)
-- Public read for `stations`, `price_current`, `prices`, `area_*` through the anon key, since price data is not personal. Write access is service role only.
-- `profiles`, `saved_places`, `notification_channels`, `alert_rules`, `alert_events`: `user_id = auth.uid()` only.
-- Edge functions use the service role key, which is stored in Supabase secrets and never shipped to the client.
+`prices`, `market_daily`, `alerts`: keep forever (tiny). `runs`: 30 days (pruned by the market job).
