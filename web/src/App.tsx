@@ -3,16 +3,20 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import {
   fetchHealth,
   fetchMarket,
+  fetchOutlook,
   fetchStations,
+  OUTLOOK_FUELS,
   FUEL_LABELS,
   sourceDown,
   type Fuel,
   type HealthResponse,
   type MarketResponse,
+  type OutlookResponse,
   type StationsResponse,
 } from './api';
 import { age, price2 } from './format';
 import { MarketCard } from './MarketCard';
+import { OutlookCard } from './OutlookCard';
 import { ListSkeleton, StationList } from './StationList';
 import { FeedbackPanel } from './FeedbackPanel';
 import { feedbackKey } from './feedback';
@@ -37,6 +41,8 @@ export default function App() {
   const [market, setMarket] = useState<MarketResponse | null>(null);
   const [marketLoading, setMarketLoading] = useState(true);
   const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [outlook, setOutlook] = useState<OutlookResponse | null>(null);
+  const [outlookLoading, setOutlookLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [fbKey] = useState<string | null>(() => feedbackKey());
   const [noteOpen, setNoteOpen] = useState(false);
@@ -70,6 +76,17 @@ export default function App() {
       .catch(() => {});
     return () => ac.abort();
   }, [reload]);
+
+  useEffect(() => {
+    if (!OUTLOOK_FUELS.includes(fuel)) return;
+    const ac = new AbortController();
+    setOutlookLoading(true);
+    fetchOutlook(fuel, ac.signal)
+      .then(setOutlook)
+      .catch(() => setOutlook(null))
+      .finally(() => !ac.signal.aborted && setOutlookLoading(false));
+    return () => ac.abort();
+  }, [fuel, reload]);
 
   const nearMe = useCallback(() => {
     if (!('geolocation' in navigator)) {
@@ -109,7 +126,7 @@ export default function App() {
       <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-2">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Pumpevakt</h1>
-          <p className="text-xs text-muted">Oslo fuel prices, ranked by what you actually save</p>
+          <p className="text-xs text-muted">Oslo fuel: when to fill up, then where</p>
         </div>
       </header>
 
@@ -120,6 +137,12 @@ export default function App() {
             ? <>Last good update {age(Math.floor((Date.now() - Date.parse(health.jobs.prices.lastOk)) / 60_000))}. </>
             : <>No successful update yet. </>}
           Prices may be out of date.
+        </div>
+      )}
+
+      {OUTLOOK_FUELS.includes(fuel) && (
+        <div className="px-4 pb-2">
+          <OutlookCard outlook={outlook} loading={outlookLoading} fuel={fuel} />
         </div>
       )}
 

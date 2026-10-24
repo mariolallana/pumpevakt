@@ -5,7 +5,10 @@ import { OSLO_S } from './core/geo';
 import { buildStations, MAX_AGE_HOURS, type StationsResponse } from './core/stationList';
 import { osloDate } from './core/time';
 import { WDI_SERIES } from './core/wdi';
-import { latestOkPricesRun, latestStationPrices, marketSeries } from './db';
+import { amLevels, amSeries, CHAIN_FUELS, GROUPS, type ChainFuel, type Group } from './core/chains';
+import { norm, verdict, type Norm, type Verdict } from './core/outlook';
+import type { Rise } from './core/rise';
+import { brandedReportsSince, latestOkPricesRun, latestStationPrices, marketSeries, marketSeriesMany } from './db';
 import { OSLO_MEDIAN_SERIES } from './jobs/prices';
 import type { Env, Fuel } from './types';
 import { FUELS } from './types';
@@ -22,6 +25,23 @@ export interface MarketResponse {
   wdi: Array<{ day: string; value: number }>;
   latest: { level: number | null; at: string | null; nFresh: number | null };
 }
+
+export interface OutlookResponse {
+  fuel: ChainFuel;
+  generatedAt: string;
+  verdict: Verdict;
+  /** Latest Oslo-wide daily rise (≤ 24 h), see src/core/rise.ts. */
+  rise: Rise | null;
+  /** Oslo level now (median of current prices) and when it was measured. */
+  level: number | null;
+  levelAt: string | null;
+  /** Today's (or the latest) Oslo-wide morning level vs the previous days' normal. */
+  norm: Norm;
+  /** Morning (06–12) level per chain, one row per day with data, oldest first; today's row is live. */
+  history: Array<{ day: string; levels: Partial<Record<Group, number>> }>;
+}
+
+export const OUTLOOK_DAYS = 30;
 
 export class BadInput extends Error {}
 
@@ -89,17 +109,52 @@ export async function stationsHandler(url: URL, env: Env, now = new Date()): Pro
       minLon: p.origin.lon - dLon,
       maxLon: p.origin.lon + dLon,
     }),
-    p.fuel === 'diesel' ? latestOkPricesRun(env.DB) : Promise.resolve(null),
+    latestOkPricesRun(env.DB),
   ]);
+  // Oslo-wide rise from the last run for the headline fuels; otherwise buildStations detects it from `rows`.
+  const rise = run?.rises && p.fuel in run.rises ? run.rises[p.fuel] : undefined;
   return buildStations(rows, {
     fuel: p.fuel,
     origin: p.origin,
     radiusKm: p.radiusKm,
     now,
-    osloLevel: run?.level ?? null,
+    osloLevel: p.fuel === 'diesel' ? (run?.level ?? null) : null,
     tankL: cfg.tankL,
     consumptionL100: cfg.consumptionL100,
+    rise,
   });
+}
+
+export async function outlookHandler(url: URL, env: Env, now = new Date()): Promise<OutlookResponse> {
+  const fuel = (url.searchParams.get('fuel') ?? 'diesel') as ChainFuel;
+  if (!CHAIN_FUELS.includes(fuel)) throw new BadInput(`fuel must be one of ${CHAIN_FUELS.join(', ')}`);
+  const today = osloDate(now);
+  const since = osloDate(new Date(now.getTime() - (OUTLOOK_DAYS - 1) * 86_400_000));
+  const [run, points, reports] = await Promise.all([
+    latestOkPricesRun(env.DB),
+    marketSeriesMany(env.DB, GROUPS.map((g) => amSeries(g, fuel)), since),
+    // Today's morning levels are computed live; earlier days come from the market job.
+    brandedReportsSince(env.DB, new Date(now.getTime() - 26 * 3_600_000).toISOString()),
+  ]);
+  const byDay = new Map<string, Partial<Record<Group, number>>>();
+  for (const pt of [...points.filter((x) => x.day !== today), ...amLevels(reports, today)]) {
+    const g = GROUPS.find((x) => amSeries(x, fuel) === pt.series);
+    if (!g) continue;
+    byDay.set(pt.day, { ...byDay.get(pt.day), [g]: pt.value });
+  }
+  const history = [...byDay.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([day, levels]) => ({ day, levels }));
+  const level = fuel === 'diesel' ? (run?.levels?.diesel ?? run?.level ?? null) : (run?.levels?.[fuel] ?? null);
+  const rise = run?.rises?.[fuel] ?? null;
+  return {
+    fuel,
+    generatedAt: now.toISOString(),
+    verdict: verdict(level !== null, rise),
+    rise,
+    level,
+    levelAt: run?.at ?? null,
+    norm: norm(history.filter((h) => h.levels.all !== undefined).map((h) => ({ day: h.day, value: h.levels.all! }))),
+    history,
+  };
 }
 
 export async function marketHandler(url: URL, env: Env, now = new Date()): Promise<MarketResponse> {
@@ -122,6 +177,7 @@ export async function handleApi(request: Request, env: Env): Promise<Response | 
   try {
     if (url.pathname === '/api/stations') return apiOk(await stationsHandler(url, env));
     if (url.pathname === '/api/market') return apiOk(await marketHandler(url, env));
+    if (url.pathname === '/api/outlook') return apiOk(await outlookHandler(url, env));
     return apiError(404, 'NOT_FOUND', `no route ${url.pathname}`);
   } catch (e) {
     if (e instanceof BadInput) return apiError(400, 'BAD_INPUT', e.message);

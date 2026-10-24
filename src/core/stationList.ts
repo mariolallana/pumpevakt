@@ -3,7 +3,8 @@ import type { Fuel } from '../types';
 import { haversineKm } from './geo';
 import { netSavingNok } from './netSaving';
 import { median } from './stats';
-import { isOutdated, isUnconfirmed, recentMedian, type PlacedPrice } from './priceJump';
+import { isUnconfirmed, recentMedian, type PlacedPrice } from './priceJump';
+import { detectRise, isOutdated, type Rise } from './rise';
 
 export const MAX_AGE_HOURS = 24; // older prices are never returned
 export const STALE_HOURS = 6; // older prices are returned but flagged `stale` (and greyed in the UI)
@@ -39,7 +40,7 @@ export interface StationItem {
   netSavingNok: number | null;
 }
 
-/** How many stations in the radius have a current price vs one from before a market-wide rise. */
+/** How many stations in the radius have a current price vs one from before the latest market-wide rise. */
 export interface Coverage {
   current: number;
   outdated: number;
@@ -65,6 +66,8 @@ export interface BuildOpts {
   osloLevel?: number | null;
   tankL: number;
   consumptionL100: number;
+  /** Oslo-wide rise from the latest prices run; undefined → detected from `rows` (null = known: no rise). */
+  rise?: Rise | null;
 }
 
 const round2 = (x: number): number => Math.round(x * 100) / 100;
@@ -84,13 +87,13 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
   const maxAgeMs = MAX_AGE_HOURS * 3_600_000;
   const staleMs = STALE_HOURS * 3_600_000;
 
-  // Area-wide view from all rows (not just the radius): spot prices that predate a market-wide jump
-  // and recent prices that are implausibly cheap (src/core/priceJump.ts).
+  // Prices that predate the latest market-wide rise (src/core/rise.ts) and recent prices that are
+  // implausibly cheap (src/core/priceJump.ts).
   const placed: PlacedPrice[] = rows
     .map((r) => ({ id: r.id, lat: r.lat, lon: r.lon, price: r.price, t: Date.parse(r.observedAt) }))
     .filter((p) => Number.isFinite(p.t) && nowMs - p.t <= maxAgeMs);
   const recentMed = recentMedian(placed, nowMs);
-  const outdatedAreaWide = placed.filter((p) => isOutdated(p, nowMs, recentMed)).length;
+  const rise = o.rise !== undefined ? o.rise : detectRise(placed, nowMs);
 
   const kept: Array<Omit<StationItem, 'netSavingNok'> & { exactKm: number; ageMs: number }> = [];
   for (const r of rows) {
@@ -112,7 +115,7 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
       ageMinutes: Math.floor(ageMs / 60_000),
       stale: ageMs > staleMs,
       unconfirmed: isUnconfirmed({ id: r.id, lat: r.lat, lon: r.lon, price: r.price, t }, placed, nowMs, recentMed),
-      outdated: isOutdated({ price: r.price, t }, nowMs, recentMed),
+      outdated: isOutdated({ price: r.price, t }, rise),
       distanceKm: round2(exactKm),
       exactKm,
       ageMs,
@@ -144,7 +147,7 @@ export function buildStations(rows: StationPriceRow[], o: BuildOpts): StationsRe
     coverage: {
       current: stations.filter((s) => !s.outdated).length,
       outdated: stations.filter((s) => s.outdated).length,
-      jumpDetected: outdatedAreaWide >= 5,
+      jumpDetected: rise !== null,
     },
     stations,
   };
