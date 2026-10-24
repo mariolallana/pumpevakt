@@ -164,3 +164,41 @@ describe('health alarm (docs/00 M5)', () => {
     expect(await raiseHealthAlert(env(), 'prices', new Date('2026-10-24T13:30:00Z'))).toBe(false); // same outage, deduped
   });
 });
+
+describe('fill-ups and Home (docs/00 §5)', () => {
+  async function seedStation() {
+    await t.db.prepare(`INSERT INTO stations (id, name, brand, address, lat, lon) VALUES ('k', 'Kiellands Plass', 'Circle K', 'Gate 1', 59.9287, 10.7499)`).run();
+    await t.db
+      .prepare(`INSERT INTO runs (job, started_at, finished_at, ok, detail) VALUES ('prices', ?1, ?1, 1, ?2)`)
+      .bind('2026-10-24T12:00:00.000Z', JSON.stringify({ level: 27.5, levels: { diesel: 27.5, petrol95: 28.9 } }))
+      .run();
+  }
+
+  it('records the price paid against the current Oslo average and summarises the saving', async () => {
+    await seedStation();
+    const r = await owner('/fillup', { method: 'POST', body: JSON.stringify({ stationId: 'k', fuel: 'diesel', price: 26.3 }) });
+    expect(r.status).toBe(201);
+    expect(await r.json()).toEqual({ osloMedian: 27.5, savingPerL: 1.2 });
+    await owner('/fillup', { method: 'POST', body: JSON.stringify({ stationId: 'k', fuel: 'petrol95', price: 28.5 }) });
+    const s = (await (await owner('/fillups')).json()) as { n: number; avgSavingPerL: number; fillups: Array<{ stationName: string }> };
+    expect(s).toMatchObject({ n: 2, avgSavingPerL: 0.8, goalPerL: 1 });
+    expect(s.fillups[0]!.stationName).toBe('Kiellands Plass');
+  });
+
+  it('validates fuel, price and station; no current average → 409', async () => {
+    expect((await owner('/fillup', { method: 'POST', body: JSON.stringify({ stationId: 'k', fuel: 'diesel', price: 26 }) })).status).toBe(400); // unknown station
+    await t.db.prepare(`INSERT INTO stations (id, name, lat, lon) VALUES ('k', 'K', 59.9, 10.7)`).run();
+    expect((await owner('/fillup', { method: 'POST', body: JSON.stringify({ stationId: 'k', fuel: 'hvo100', price: 26 }) })).status).toBe(400);
+    expect((await owner('/fillup', { method: 'POST', body: JSON.stringify({ stationId: 'k', fuel: 'diesel', price: 2.6 }) })).status).toBe(400);
+    expect((await owner('/fillup', { method: 'POST', body: JSON.stringify({ stationId: 'k', fuel: 'diesel', price: 26 }) })).status).toBe(409);
+  });
+
+  it('Home is set from the app, rounded to ~100 m, Oslo area only, and can be cleared', async () => {
+    expect((await owner('/home', { method: 'POST', body: JSON.stringify({ lat: 48.85, lon: 2.35 }) })).status).toBe(400);
+    const h = (await (await owner('/home', { method: 'POST', body: JSON.stringify({ lat: 59.94912, lon: 10.76543 }) })).json()) as { home: { lat: number; lon: number } };
+    expect(h.home).toMatchObject({ lat: 59.949, lon: 10.765 });
+    expect(((await (await owner('/alerts')).json()) as { home: unknown }).home).toMatchObject({ lat: 59.949, lon: 10.765 });
+    await owner('/home', { method: 'POST', body: JSON.stringify({ clear: true }) });
+    expect(((await (await owner('/alerts')).json()) as { home: unknown }).home).toBeNull();
+  });
+});

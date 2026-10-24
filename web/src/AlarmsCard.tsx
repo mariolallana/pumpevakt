@@ -1,7 +1,7 @@
 // Owner-only: turn alarms on for this phone, test, mute, and review every alarm with 👍/👎 (docs/04 §4:
 // shadow mode shows what *would* have been sent, so the thresholds can be judged before going live).
 import { useCallback, useEffect, useState } from 'react';
-import { disablePush, enablePush, ownerJson, pushState, type AlertsResponse, type OwnerAlert, type PushState } from './alarms';
+import { disablePush, enablePush, here, ownerJson, pushState, type AlertsResponse, type FillupsResponse, type OwnerAlert, type PushState } from './alarms';
 
 const KIND_ICON: Record<OwnerAlert['kind'], string> = { market_drop: '📉', outlier: '⛽', system: '⚠️' };
 const STATUS: Record<OwnerAlert['status'], string> = { sent: 'sent', shadow: 'would have sent', pending: 'waiting (quiet hours / limit)', dropped: 'dropped (no longer true)' };
@@ -12,12 +12,14 @@ const when = (iso: string) =>
 export function AlarmsCard({ ownerKey }: { ownerKey: string }) {
   const [state, setState] = useState<PushState | null>(null);
   const [data, setData] = useState<AlertsResponse | null>(null);
+  const [fills, setFills] = useState<FillupsResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     pushState().then(setState).catch(() => setState('unsupported'));
     ownerJson<AlertsResponse>(ownerKey, '/alerts').then(setData).catch((e: unknown) => setMsg(`Couldn’t load alarms: ${e instanceof Error ? e.message : e}`));
+    ownerJson<FillupsResponse>(ownerKey, '/fillups').then(setFills).catch(() => {});
   }, [ownerKey]);
   useEffect(refresh, [refresh]);
 
@@ -99,6 +101,47 @@ export function AlarmsCard({ ownerKey }: { ownerKey: string }) {
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {data && (
+        <div className="mt-3 border-t border-line pt-2 text-sm">
+          <h3 className="text-xs font-semibold text-muted">Home</h3>
+          <p className="mt-1 flex flex-wrap items-center gap-2">
+            {data.home ? (
+              <span>
+                Set {new Date(data.home.setAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} (kept private, ~100 m precision). Cheap-station
+                alarms cover 15 km around it.
+              </span>
+            ) : (
+              <span className="text-muted">Not set. Cheap-station alarms need it: tap this while you’re at home.</span>
+            )}
+            <button
+              type="button"
+              disabled={busy}
+              className={`${btn} border-line`}
+              onClick={() => run('Setting Home', async () => ownerJson(ownerKey, '/home', await here()), 'Home saved.')}
+            >
+              📍 {data.home ? 'Move Home here' : 'Set Home to where I am'}
+            </button>
+          </p>
+        </div>
+      )}
+
+      {fills && (
+        <div className="mt-3 border-t border-line pt-2 text-sm">
+          <h3 className="text-xs font-semibold text-muted">⛽ Your fill-ups</h3>
+          {fills.n === 0 ? (
+            <p className="mt-1 text-muted">None yet. When you fill up, tap the station, then “⛽ I filled up here”.</p>
+          ) : (
+            <p className="mt-1">
+              {fills.n} fill-up{fills.n === 1 ? '' : 's'} · on average{' '}
+              <span className={`num font-semibold ${fills.avgSavingPerL! >= fills.goalPerL ? 'text-cheap' : ''}`}>
+                {fills.avgSavingPerL! >= 0 ? `${fills.avgSavingPerL!.toFixed(2)} kr/L below` : `${Math.abs(fills.avgSavingPerL!).toFixed(2)} kr/L above`}
+              </span>{' '}
+              the Oslo average (goal: {fills.goalPerL.toFixed(2)} below).
+            </p>
+          )}
         </div>
       )}
 

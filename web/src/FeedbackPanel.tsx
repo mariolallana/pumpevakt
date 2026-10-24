@@ -2,6 +2,9 @@
 import { useState } from 'react';
 import type { StationItem } from './api';
 import { sendFeedback, type FeedbackBody } from './feedback';
+import { ownerJson } from './alarms';
+
+const FILLUP_FUELS = ['diesel', 'petrol95'];
 
 interface Props {
   feedbackKey: string;
@@ -12,7 +15,26 @@ interface Props {
 }
 
 export function FeedbackPanel({ feedbackKey, fuel, station, where, onDone }: Props) {
-  const [mode, setMode] = useState<'pick' | 'wrong' | 'note'>(station ? 'pick' : 'note');
+  const [mode, setMode] = useState<'pick' | 'wrong' | 'note' | 'fill'>(station ? 'pick' : 'note');
+  const [paid, setPaid] = useState(station ? station.price.toFixed(2) : '');
+  const [filled, setFilled] = useState<string | null>(null);
+
+  const saveFillup = async () => {
+    const price = Number(paid.replace(',', '.'));
+    setState('sending');
+    try {
+      const r = await ownerJson<{ osloMedian: number; savingPerL: number }>(feedbackKey, '/fillup', { stationId: station!.id, fuel, price });
+      const s = r.savingPerL;
+      setFilled(
+        s > 0
+          ? `Saved ✓ ${s.toFixed(2)} kr/L below the Oslo average (${r.osloMedian.toFixed(2)}): about ${Math.round(s * 50)} kr on 50 L.`
+          : `Saved ✓ ${Math.abs(s).toFixed(2)} kr/L ${s < 0 ? 'above' : 'at'} the Oslo average (${r.osloMedian.toFixed(2)}).`,
+      );
+      setTimeout(() => onDone?.(), 4000);
+    } catch (e) {
+      setState(e instanceof Error ? e.message : 'failed');
+    }
+  };
   const [actual, setActual] = useState('');
   const [note, setNote] = useState('');
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | string>('idle');
@@ -38,6 +60,7 @@ export function FeedbackPanel({ feedbackKey, fuel, station, where, onDone }: Pro
     }
   };
 
+  if (filled) return <p className="rounded-lg bg-bg px-3 py-2 text-sm" role="status">{filled}</p>;
   if (state === 'sent') return <p className="rounded-lg bg-bg px-3 py-2 text-sm" role="status">Thanks, saved ✓</p>;
 
   const btn = 'min-h-11 rounded-lg border border-line px-3 text-sm font-medium';
@@ -49,7 +72,30 @@ export function FeedbackPanel({ feedbackKey, fuel, station, where, onDone }: Pro
           <button type="button" className={btn} onClick={() => submit('ok')} disabled={state === 'sending'}>👍 Correct</button>
           <button type="button" className={btn} onClick={() => setMode('wrong')}>👎 Wrong</button>
           <button type="button" className={btn} onClick={() => setMode('note')}>📝 Note</button>
+          {FILLUP_FUELS.includes(fuel) && (
+            <button type="button" className={btn} onClick={() => setMode('fill')}>⛽ I filled up here</button>
+          )}
         </div>
+      )}
+      {mode === 'fill' && (
+        <>
+          <label className="block">
+            <span className="text-muted">Price you paid (kr/L)</span>
+            <input
+              inputMode="decimal"
+              autoFocus
+              value={paid}
+              onChange={(e) => setPaid(e.target.value)}
+              className="num mt-1 block min-h-11 w-full rounded-lg border border-line bg-surface px-3"
+            />
+          </label>
+          <div className="flex gap-2">
+            <button type="button" className={`${btn} bg-ink text-bg`} disabled={state === 'sending' || !paid.trim()} onClick={saveFillup}>
+              {state === 'sending' ? 'Saving…' : 'Save fill-up'}
+            </button>
+            <button type="button" className={btn} onClick={() => setMode('pick')}>Back</button>
+          </div>
+        </>
       )}
       {mode === 'wrong' && (
         <label className="block">

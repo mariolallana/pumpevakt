@@ -13,6 +13,7 @@ export interface OwnerAlert {
 
 export interface AlertsResponse {
   shadow: boolean;
+  home: { lat: number; lon: number; setAt: string } | null;
   mutedUntil: string | null;
   alerts: OwnerAlert[];
 }
@@ -68,4 +69,23 @@ export async function disablePush(key: string): Promise<void> {
   if (!sub) return;
   await ownerJson(key, '/unsubscribe', { endpoint: sub.endpoint }).catch(() => {});
   await sub.unsubscribe();
+}
+
+export interface FillupsResponse {
+  n: number;
+  avgSavingPerL: number | null;
+  goalPerL: number;
+  fillups: Array<{ id: number; at: string; fuel: string; price: number; osloMedian: number; stationName: string }>;
+}
+
+/** Current position (must run from a tap). */
+export function here(): Promise<{ lat: number; lon: number }> {
+  return new Promise((resolve, reject) => {
+    if (!('geolocation' in navigator)) return reject(new Error('location isn’t available in this browser'));
+    navigator.geolocation.getCurrentPosition(
+      (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      () => reject(new Error('location permission was denied')),
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
+  });
 }
