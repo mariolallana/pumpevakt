@@ -5,8 +5,8 @@ compatibility_date = "2026-04-20"
 [[d1_databases]]
 binding = "DB"
 database_name = "pumpevakt"
-# Placeholder. Run `npx wrangler d1 create pumpevakt` once and paste the printed database_id here.
-database_id = "00000000-0000-0000-0000-000000000000"
+# Created 2026-10-24 (region EEUR).
+database_id = "925a17b7-2e1f-4eaf-a0ab-ad77e0e4b123"
 migrations_dir = "db/migrations"
 
 [triggers]
