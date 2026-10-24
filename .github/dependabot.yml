@@ -1,0 +1,22 @@
+# docs/09 Security: dependency updates. Grouped and monthly to keep PR noise low for a one-person project.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      all-npm:
+        patterns: ['*']
+    ignore:
+      # Node 20 in CI caps wrangler/miniflare/vitest majors (docs/spec-flaws.md tooling notes, IMPL-10).
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      all-actions:
+        patterns: ['*']
