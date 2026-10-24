@@ -1,32 +1,31 @@
-# Pumpevakt ⛽ — know when (and where) to fill up in Oslo
+# Pumpevakt ⛽ — cheapest diesel near me, and alerts when Oslo prices drop
 
-> Working name. *Pumpevakt* means "pump guard". It's a personal Telegram bot, with a dashboard later.
+> Working name. *Pumpevakt* means "pump guard". It's a personal Telegram bot, with a read-only dashboard later.
 
-**What it does today, on 100 % open data:**
-- 📉📈 **Market alarms**: tells me when the diesel market is falling sharply (wait) or rising (fill up now). It uses a Wholesale Diesel Index built from FRED and Norges Bank data, which tracks Norwegian pump prices with **0.92 correlation** over 10 years ([backtest](docs/01-data-sources.md#2-the-creative-unlock-the-wholesale-diesel-index-wdi)).
-- `/status`, `/near` and `/p` (report a price) in Telegram, with 158 Oslo stations from open ODbL data.
+- `/near` → the best deal near me, ranked by real saving after the detour, with the age of every price.
+- 📉 **Market-drop alarm**: the Oslo median price fell sharply compared with its last 14 days.
+- 💥 **Cheap-station alarm**: one station around Oslo is priced well below its neighbours.
 
-**Unlocks later:** the cheap-station alarm and a live-price map, as soon as a station-level price source opens up ([gates](docs/01-data-sources.md#4-gates-and-unlocks)).
+**Data: open, keyless endpoints only.** Station prices come from the public [drivstoffapp.no API](https://backend.drivstoffapp.no/docs). On 2026-10-24, 95 of 100 Oslo stations had a diesel price under 24 h old. Market context comes from FRED + Norges Bank (a wholesale index with 0.92 correlation to official pump prices).
 
-## Feasibility: run it yourself
+## Run the feasibility tests yourself
 ```bash
-node scripts/probe-sources.mjs        # tests all 8 open sources (OK / STALE / FAIL)
-node scripts/backtest-wholesale.mjs   # WDI vs SSB official pump prices, 2015 → today
-GOOGLE_MAPS_API_KEY=… node scripts/probe-google-places.mjs   # does Google have Oslo fuel prices?
+node scripts/probe-sources.mjs        # every source: OK / STALE / FAIL
+node scripts/backtest-wholesale.mjs   # wholesale index vs SSB official pump prices, 2015 → today
 ```
 
-## Architecture in one line
-One **Cloudflare Worker** (cron jobs + Telegram webhook + read-only JSON API) with **D1** (SQLite), deployed by GitHub Actions. Free, serverless, and nothing runs on my PC.
+## Architecture
+One **Cloudflare Worker** (30-min cron + Telegram webhook) with **D1** (SQLite), deployed by GitHub Actions. Free, and nothing runs on my PC.
 
 ## Specs
 | # | Doc |
 |---|---|
 | 00 | [Product requirements](docs/00-product-requirements.md) |
-| 01 | [Data sources & feasibility](docs/01-data-sources.md) ← start here |
+| 01 | [Data sources](docs/01-data-sources.md) |
 | 02 | [Architecture](docs/02-architecture.md) |
 | 03 | [Data model](docs/03-data-model.md) · [schema.sql](db/schema.sql) |
 | 04 | [Alert engine](docs/04-alert-engine.md) |
-| 05 | [Interfaces (bot, routes, adapters)](docs/05-api-spec.md) |
+| 05 | [Interfaces](docs/05-api-spec.md) |
 | 06 | [UX / UI](docs/06-ux-ui-spec.md) |
 | 07 | [Tech stack](docs/07-tech-stack.md) |
 | 08 | [Build plan + Claude Code prompts](docs/08-build-plan.md) |
@@ -34,8 +33,6 @@ One **Cloudflare Worker** (cron jobs + Telegram webhook + read-only JSON API) wi
 | 10 | [Design review log](docs/10-design-review.md) |
 
 ## Status
-- ✅ Phase 0 (feasibility) done 2026-10-24.
-- ⏳ Phase 0b: Google Places probe and partner emails.
-- Next: Phase 1.
+✅ Phase 0 (data sources) done 2026-10-24 · Next: Phase 1.
 
-Data: FRED · Norges Bank · SSB (CC BY 4.0) · OpenVan · stations © Drivstoffpriser contributors & OpenStreetMap contributors (ODbL).
+Prices: drivstoffapp.no · Market: FRED, Norges Bank, SSB (CC BY 4.0).

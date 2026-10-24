@@ -1,62 +1,47 @@
 # 05 · Interfaces
 
 ## 1. Telegram bot (primary UI)
-
-All commands work only for `ALLOWED_CHAT_IDS`. Others get no reply.
+Only `ALLOWED_CHAT_IDS` get replies.
 
 | Command | Reply |
 |---|---|
 | `/start` | Welcome text and your chat ID (to paste into config the first time) |
-| `/status` | WDI today, 5-day and 30-day change, a sparkline (`▁▂▃▅▇`), national pump average, last signal, data freshness |
-| `/near` or 📍 shared location | Top 5 stations by net saving within 10 km using prices ≤ 24 h old. If there are fewer than 3 priced stations: the 5 nearest stations plus "no fresh prices, send one with /p" |
-| `/p <station words> <fuel> <price>` e.g. `/p uno-x ryen d 20.89` | Fuzzy-match the station (name/brand/address tokens, near Home or the last shared location). Confirm with buttons ✅ / pick another of the top 3. Fuel shorthand: `d` = diesel, `95`, `98`, `hvo` |
-| `/health` | Last run per job, failures, row counts |
+| `/near` or 📍 shared location | Top 5 stations by net saving within `RADIUS_KM` (default 10) using fresh prices, each with price, distance, age, saving and a 🧭 Navigate button (Google Maps link) |
+| `/status` | Oslo median now vs 14-day normal, 14-day sparkline `▁▂▃▅▇`, cheapest 3 in Oslo, WDI line, data freshness |
+| `/health` | Last run per job, failures, number of fresh stations |
 | `/mute 24h` · `/unmute` | Pause or resume pushes |
-| `/shadow on|off` | Calibration mode ([04 §4](04-alert-engine.md#4-shadow-mode--feedback)) |
-| callback `fb:<alert_id>:up|down` | Stores feedback |
+| `/shadow on\|off` | Calibration mode ([04 §4](04-alert-engine.md)) |
+| callback `fb:<alert_id>:up\|down` | Stores feedback |
+| callback `filled:<station_id>` | Logs "filled here" (for the savings metric) |
 
-Telegram webhook: `POST /telegram` with header `X-Telegram-Bot-Api-Secret-Token` = `TELEGRAM_WEBHOOK_SECRET`. Set it once with `setWebhook`.
+Webhook: `POST /telegram` with `X-Telegram-Bot-Api-Secret-Token`. Register it once with `setWebhook`.
 
-## 2. HTTP routes on the Worker
+## 2. Worker HTTP routes
+| Route | Purpose |
+|---|---|
+| `POST /telegram` | Bot |
+| `GET /health` | `{ jobs: { prices: {lastOk, lastError, nFresh}, market: {…} } }`. Used by the weekly Action |
+| `GET /api/stations?lat&lon&radius_km&fuel` | Phase 4: stations with latest price, age, net saving |
+| `GET /api/market?days=90` | Phase 4: Oslo daily median + WDI series |
 
-| Route | Auth | Purpose |
-|---|---|---|
-| `POST /telegram` | Telegram secret header | Bot |
-| `GET /health` | none (no sensitive data) | `{ jobs: { market: { lastOk, lastError }, stations: {…} } }`. Used by the weekly Action |
-| `GET /api/market?days=90` | none | Phase 4 dashboard: WDI and national series |
-| `GET /api/stations?lat&lon&radius_km&fuel` | none | Phase 4 dashboard: stations with latest price, age and net saving |
+Read-only, no personal data.
 
-Public, read-only, no personal data. If the dashboard ever shows reports by friends, drop `reporter` from the API output.
-
-## 3. Cron triggers (`wrangler.toml`)
-
+## 3. Cron triggers
 ```toml
 [triggers]
-crons = ["30 6 * * *", "30 17 * * *", "0 */12 * * *"]   # market ×2 (UTC), station prices every 12 h
+crons = ["*/30 * * * *", "30 6 * * *"]   # prices job (every 30 min), WDI job (daily, UTC)
 ```
 
-`scheduled()` dispatches on `event.cron`. Every job writes a `runs` row, and two consecutive failures trigger a Telegram ⚠️.
-
-## 4. Source adapter contract
-
+## 4. Adapter contract
 ```ts
-// src/sources/types.ts
 export type Fuel = 'diesel' | 'petrol95' | 'petrol98' | 'hvo100';
 
-export interface StationPrice {
-  stationId: string;      // our stations.id
+export interface StationObs {
+  station: { id: string; name: string; brand: string; address: string; lat: number; lon: number };
   fuel: Fuel;
-  price: number;          // NOK/L incl. VAT
-  observedAt: string;     // ISO, when the price was seen
-  source: string;
+  price: number;       // NOK/L incl. VAT
+  observedAt: string;  // ISO, the per-fuel updated_at from the source
 }
-
 export interface MarketPoint { day: string; series: string; value: number }
-
-export interface StationSource { id: string; fetch(signal: AbortSignal): Promise<StationPrice[]> }
-export interface MarketSource  { id: string; fetch(signal: AbortSignal): Promise<MarketPoint[]> }
 ```
-
-Rules: adapters are pure fetch-and-map with no DB access, use a 15 s timeout, drop tax-free diesel, and ship a recorded fixture with a mapping test.
-
-Initial adapters: `fred` (ULSD + Brent), `norgesBank` (USD/NOK), `openvan` (national avg), `ssb` (monthly, run on the 10th), `drivstoffpriser` (station prices, ODbL). Gated: `googlePlaces`, `partner`.
+Adapters: `drivstoffapp` (→ `StationObs[]`), `fred` and `norgesBank` (→ `MarketPoint[]`). They are pure fetch-and-map with no DB access, use a 15 s timeout, and ship a recorded fixture with a test.

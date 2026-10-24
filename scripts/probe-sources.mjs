@@ -20,6 +20,21 @@ const get = async (url, init) => {
 const csvRows = (text, sep = ',') => text.trim().split('\n').slice(1).map((l) => l.split(sep));
 
 const probes = {
+  // PRIMARY station prices: public keyless API (docs at backend.drivstoffapp.no/docs)
+  async drivstoffapp_nearby() {
+    const url = `https://backend.drivstoffapp.no/stations/fuel/nearby?lat=${OSLO.lat}&lng=${OSLO.lon}&radius=25&limit=100&include_no_price=false`;
+    const stations = await (await get(url)).json();
+    const ages = stations
+      .map((s) => s.prices?.updated_at?.diesel_price)
+      .filter(Boolean)
+      .map((t) => daysAgo(t.replace(' ', 'T')) * 24);
+    const fresh = ages.filter((h) => h < 24).length;
+    const under6 = ages.filter((h) => h < 6).length;
+    return {
+      status: fresh >= 0.3 * stations.length ? 'OK' : 'STALE',
+      detail: `${stations.length} stations within 25 km, diesel <24 h: ${fresh}, <6 h: ${under6}`,
+    };
+  },
   // Station master data: ODbL community list
   async drivstoffpriser_stations() {
     const { stations } = await (await get(`${DPS}/stations.json`)).json();
@@ -66,11 +81,6 @@ const probes = {
     const d = await (await get('https://data.ssb.no/api/v0/no/table/09654', { method: 'POST', body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } })).json();
     const month = Object.keys(d.dimension.Tid.category.index)[0];
     return { status: 'OK', detail: `${month}: petrol95 ${d.value[0]}, diesel ${d.value[1]} NOK/L` };
-  },
-  // National pump average, roughly weekly, keyless
-  async openvan_national() {
-    const d = (await (await get('https://openvan.camp/api/fuel/prices?country=NO')).json()).data.NO;
-    return { status: daysAgo(d.fetched_at) < 10 ? 'OK' : 'STALE', detail: `diesel ${d.prices.diesel?.toFixed(2)}, petrol95 ${d.prices.gasoline?.toFixed(2)} NOK/L (fetched ${d.fetched_at.slice(0, 10)})` };
   },
 };
 

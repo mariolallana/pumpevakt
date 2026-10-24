@@ -2,26 +2,26 @@
 
 The product has two surfaces, delivered in this order:
 1. **Telegram bot (MVP).** This is where 95 % of the value lands: pushes plus a few commands.
-2. **Web dashboard (Phase 4).** A read-only page for the map and trends, built only once station prices exist (gate G3).
+2. **Web dashboard (Phase 4).** A read-only page for the map and trends, built after the bot has proven itself.
 
 ## 1. Telegram UX principles
 
-- **The answer first, in one line.** The first line of every message is the decision ("wait if you can", "fill up soon"), then the numbers.
+- **The answer first, in one line.** The first line of every message is the takeaway ("Diesel is cheap around Oslo right now"), then the numbers.
 - **Money, not maths.** Show kr/L and "save ~62 kr". Use the WDI jargon only in `/status`.
 - **Every number has a date or age.** "seen 14 min ago", "data as of Mon 20 Oct".
-- **Buttons over typing.** Inline keyboards for feedback, mute, navigate and station confirmation.
-- **Honest about gaps.** "No fresh prices near you. Report one with /p", never a silent empty list.
+- **Buttons over typing.** Inline keyboards for feedback, mute, navigate and "⛽ filled here".
+- **Honest about gaps.** "No fresh prices within 10 km. Widen to 20 km?", never a silent empty list.
 - **Quiet by default.** At most 3 pushes a day, quiet hours, and shadow mode on first run.
 - Formatting: Telegram HTML mode. Numbers use a dot decimal and two decimals. Emoji are used only as glanceable icons (📉 📈 💥 ⚠️ ✅), one per line maximum.
 
 ### `/status` layout
 ```
-⛽ Diesel market · Fri 24 Oct
-Wholesale cost  10.42 kr/L   ▇▇▆▅▅▄▃▃▂▂  (30 days)
-5 days  −0.71   ·   30 days  −1.05
-National pump avg  26.84 (week 43, −0.38)
-Signal: 📉 falling since Wed. Wait if you can.
-Data as of Mon 20 Oct (FRED) · Thu 23 Oct (Norges Bank)
+⛽ Oslo diesel · Fri 24 Oct 14:30
+Median now  24.33   ·  14-day normal  24.61  (−0.28)
+14 days  ▆▇▆▅▅▆▄▄▃▄▃▃▂▃
+Cheapest now: Uno-X Nedre Bekkelaget 22.85 · Uno-X Linderud Nord 22.87 · Uno-X Bekkestua 22.90
+Wholesale cost −0.71 in 5 days → prices may keep falling
+95 of 100 stations fresh (<24 h) · Prices: drivstoffapp.no
 ```
 
 ### `/near` layout
@@ -29,7 +29,7 @@ Data as of Mon 20 Oct (FRED) · Thu 23 Oct (Norges Bank)
 📍 Near you (10 km) · diesel
 1. Uno-X Ryen        20.89 · 1.8 km · 2 h ago · save ~78 kr
 2. Circle K Helsfyr  21.09 · 3.1 km · 5 h ago · save ~62 kr
-Other stations nearby have no fresh price. Send one with /p
+Prices: drivstoffapp.no
 ```
 
 ## 2. Web dashboard (Phase 4)
@@ -50,8 +50,8 @@ Other stations nearby have no fresh price. Send one with /p
 - Type: Geist Sans for UI, **Geist Mono (tabular figures)** for every number.
 - Colour is never the only signal: always add ▼/▲ and a label.
 - Two views only:
-  1. **Market:** a big signal card (same wording as the bot), a 90-day WDI vs national pump average chart, the SSB monthly as a dotted step line.
+  1. **Market:** a big signal card (same wording as the bot), a 90-day chart of the Oslo daily median (with min band) and the wholesale index as a faint second line.
   2. **Map:** station pins as price pills coloured by Δ vs reference, a list beneath sorted by net saving, and price age on every row. Stale prices (> 24 h) are greyed and never ranked.
-- States: loading skeleton, "no fresh prices" (with the /p hint), and data-source-down banner (from `/health`).
+- States: loading skeleton, "no fresh prices" (with a widen-radius chip), and data-source-down banner (from `/health`).
 - Quality bar: WCAG 2.2 AA, 44 px targets, Lighthouse mobile ≥ 90, checked at 375 px and 1440 px in light and dark.
-- Attribution in the footer: © OpenStreetMap contributors · Drivstoffpriser (ODbL) · FRED · Norges Bank · SSB (CC BY 4.0) · OpenVan.
+- Attribution in the footer: Prices: drivstoffapp.no · Map © OpenStreetMap contributors · FRED · Norges Bank · SSB (CC BY 4.0).

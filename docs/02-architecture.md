@@ -1,90 +1,76 @@
-# 02 · Architecture (lean v2)
+# 02 · Architecture (lean v3)
 
 ## 1. Principles
-1. **One deployable.** A single Cloudflare Worker handles cron jobs, the Telegram webhook and (later) a JSON API for the dashboard.
-2. **One database.** Cloudflare D1 (SQLite). About 160 stations and a few thousand rows a year don't need Postgres or PostGIS. Radius search is a haversine in TypeScript over 160 rows.
-3. **One copy of the logic.** All maths lives in `src/core/` as pure TypeScript and is unit-tested. SQL only stores and reads.
-4. **Heavy lifting outside the Worker.** Big one-off jobs (the station import, backups) run in GitHub Actions, which keeps the Worker within its free CPU budget.
+1. **One deployable.** A single Cloudflare Worker handles cron jobs, the Telegram webhook and (Phase 4) a read-only JSON API.
+2. **One database.** Cloudflare D1 (SQLite). ~160 stations and some tens of thousands of rows a year. Radius search is a haversine in TypeScript.
+3. **One copy of the logic.** `src/core/` is pure, tested TypeScript. SQL only stores and reads.
+4. **Open, keyless sources only** ([01](01-data-sources.md)).
 5. **Nothing on my PC.** Cloudflare and GitHub run everything.
 
 ## 2. Diagram
 
 ```
-        Telegram app (phone)                       Later: browser (Phase 4)
-              │  ▲                                        │
-     webhook  │  │ sendMessage                            │ GET /api/*
-              ▼  │                                        ▼
- ┌──────────────────── Cloudflare Worker  "pumpevakt" ─────────────────────┐
- │ fetch()      /telegram  → bot commands (/status /near /p /mute …)       │
- │              /api/*     → read-only JSON for the dashboard (Phase 4)    │
- │              /health    → last successful run per job                   │
- │ scheduled()  06:30 & 17:30 UTC → market job: FRED + Norges Bank +       │
- │                                   OpenVan → WDI → market alarm          │
- │              every 12 h        → station-price job: adapters → prices   │
- │                                   → outlier alarm (gated)               │
- │ src/core/  (pure TS: wdi, signals, geo, netSaving, format) ← Vitest     │
- └───────────────┬─────────────────────────────────────────────────────────┘
-                 │ D1 binding
-                 ▼
-     Cloudflare D1 (SQLite): stations · prices · market_daily · alerts · runs
+        Telegram (phone)                                 Phase 4: browser
+            │  ▲                                                │
+   webhook  │  │ sendMessage                                    │ GET /api/*
+            ▼  │                                                ▼
+ ┌──────────────────── Cloudflare Worker "pumpevakt" ──────────────────────┐
+ │ fetch()     /telegram → /near /status /mute /shadow /health, callbacks   │
+ │             /api/*    → read-only JSON (Phase 4) · /health              │
+ │ scheduled() */30 min  → prices job: drivstoffapp.no (3 calls) → upsert   │
+ │                         stations · insert changed prices · Oslo median   │
+ │                         → market-drop + cheap-station rules → Telegram   │
+ │             06:30 UTC → market job: FRED + Norges Bank → WDI (context)   │
+ │ src/core/ (pure: signals, geo, netSaving, wdi, format) ← Vitest          │
+ └──────────────┬──────────────────────────────────────────────────────────┘
+                ▼ D1 binding
+     D1 (SQLite): stations · prices · market_daily · alerts · runs · settings
 
- GitHub (mariolallana/pumpevakt)
-   ci.yml      : typecheck + vitest on every PR
-   deploy.yml  : wrangler deploy + d1 migrations on push to main
-   weekly.yml  : refresh stations from Drivstoffpriser ODbL → D1 · d1 export backup · /health check
+ GitHub: ci.yml (typecheck + test) · deploy.yml (migrations + wrangler deploy)
+         weekly.yml (D1 export backup + external /health check)
 ```
 
-## 3. Why this stack (challenge 6 and 7 in [10](10-design-review.md))
+## 3. Why this stack ([10](10-design-review.md) challenges 6–7)
 
-| Need | Choice | Rejected and why |
+| Need | Choice | Rejected |
 |---|---|---|
-| Scheduler | Worker **Cron Triggers** | Supabase pg_cron → pg_net → Edge Function: three hops, hard to debug, and the project pauses after 7 idle days. GitHub Actions cron: delayed or skipped under load |
-| Webhook (Telegram) | Same Worker | A second service |
-| DB | **D1** | Supabase Postgres + PostGIS: overkill for 160 rows |
-| Web (Phase 4) | **Vite + React SPA** on Cloudflare Pages | Next.js: no server rendering needed, since all data is a tiny JSON API |
-| Language | TypeScript everywhere | — |
+| Scheduler + webhook | Worker cron triggers + fetch handler in one file | Supabase pg_cron → pg_net → Edge Function (3 hops, pauses after 7 idle days). GitHub Actions cron (delayed or skipped runs) |
+| DB | D1 | Postgres + PostGIS (overkill) |
+| Station master data | Upserted from the price API response itself | A separate import job (one less moving part) |
+| Phase 4 web | Vite + React on Cloudflare Pages | Next.js (no server rendering needed) |
 
-## 4. Flows
-
-**Market job** (twice daily):
-1. Fetch the last 60 days of ULSD and Brent (FRED CSV), USD/NOK (Norges Bank) and the national average (OpenVan).
-2. Upsert into `market_daily(day, series, value)`. Compute `wdi` for each day that has both inputs.
-3. `core/signals.ts` evaluates the market rule ([04](04-alert-engine.md)) → insert into `alerts` (with a `dedupe_key`). Shadow mode marks it as not sent.
-4. Send via Telegram. Write a `runs` row. On failure, retry once in the next cron; two consecutive failures trigger a Telegram "⚠️ data job failing" message.
-
-**Station-price job** (every 12 h; every 30 min once a live source is unlocked): run the enabled adapters (`drivstoffpriser`, later `google_places` or `partner`), insert only *changed* prices, then evaluate the outlier rule (gated).
-
-**Bot command:** Telegram → `POST /telegram` (verifies the secret header and the chat allowlist) → handler → reply.
+## 4. Prices job (every 30 min)
+1. Call `GET /stations/fuel/nearby` for 3 centres (radius 12 km, `limit=100`, `include_no_price=false`), with a 15 s timeout each. Dedupe by `id`.
+2. Upsert `stations`. For each fuel, insert into `prices` only if the price or `observed_at` changed.
+3. Compute the Oslo level `L` (median of fresh diesel prices) and update today's `oslo_diesel_median` in `market_daily`.
+4. Run `signals.ts` (market drop, cheap station) → `alerts` (dedupe key, shadow flag) → send through Telegram according to the delivery rules.
+5. Write a `runs` row. Two consecutive failures → Telegram ⚠️.
 
 ## 5. Free-tier budget (verify at setup — limits change)
 
-| Service | Free limit (as known 2026) | Expected use |
+| Service | Free limit (as known 2026) | Use |
 |---|---|---|
-| Workers | 100k requests/day, **10 ms CPU per invocation**, 5 cron triggers | < 200 requests/day. Jobs are network-bound (fetch time doesn't count as CPU) |
-| D1 | 5 GB, 5M rows read/day, 100k rows written/day | < 5 MB/yr, < 1k writes/day |
-| GitHub Actions | 2,000 min/month (private repo) | ~60 min/month |
-| Telegram Bot API | Free | — |
-| FRED / Norges Bank / SSB / OpenVan | Free, keyless | ~6 requests/day |
-| Optional AI photo extraction (later) | Claude Haiku 5.5 at cents/month, or Gemini Flash free tier | — |
+| Workers | 100k requests/day, **10 ms CPU per invocation**, 5 cron triggers | ~50 cron runs + bot requests/day |
+| D1 | 5 GB, 5M reads/day, 100k writes/day | < 50 MB/yr, < 2k writes/day |
+| GitHub Actions | 2,000 min/month (private repo) | ~40 min/month |
+| drivstoffapp.no, FRED, Norges Bank | Free and keyless | ~150 + 2 requests/day |
 
-**CPU risk:** parsing the 420 KB station file can come close to 10 ms, which is why that import runs in GitHub Actions, not the Worker. If a job ever hits the limit, move it to the weekly Action or to the Workers paid plan ($5/month).
+**CPU risk:** each run parses ~3 × 100 KB of JSON (the responses include nested `expand` data). That should fit within 10 ms CPU, but the first deploy must check this with `wrangler tail`. If it doesn't fit, use the Workers paid plan ($5/month) or drop to 2 calls per run.
 
 ## 6. Repo layout
-
 ```
 pumpevakt/
-├─ CLAUDE.md · README.md · docs/
-├─ scripts/            probe-sources.mjs · backtest-wholesale.mjs · probe-google-places.mjs · import-stations.mjs
-├─ db/schema.sql       (D1 migrations live in db/migrations/)
+├─ CLAUDE.md · README.md · docs/ · db/schema.sql · db/migrations/
+├─ scripts/  probe-sources.mjs · backtest-wholesale.mjs
 ├─ src/
-│  ├─ index.ts         fetch() + scheduled() entry
-│  ├─ config.ts        single-user settings (typed, read from env vars)
-│  ├─ core/            wdi.ts · signals.ts · geo.ts · netSaving.ts · format.ts   ← pure, tested
-│  ├─ sources/         fred.ts · norgesBank.ts · openvan.ts · drivstoffpriser.ts · (googlePlaces.ts)
-│  ├─ bot/             commands.ts · telegram.ts
-│  └─ db.ts            typed D1 queries
-├─ test/               core/*.test.ts + fixtures/
-├─ web/                (Phase 4) Vite + React dashboard
+│  ├─ index.ts        fetch() + scheduled()
+│  ├─ config.ts       single-user settings from env vars
+│  ├─ core/           signals.ts · geo.ts · netSaving.ts · wdi.ts · format.ts
+│  ├─ sources/        drivstoffapp.ts · fred.ts · norgesBank.ts
+│  ├─ bot/            commands.ts · telegram.ts
+│  └─ db.ts
+├─ test/             core/*.test.ts · sources/*.test.ts · fixtures/
+├─ web/              (Phase 4) Vite + React dashboard
 ├─ wrangler.toml
-└─ .github/workflows/  ci.yml · deploy.yml · weekly.yml
+└─ .github/workflows/ ci.yml · deploy.yml · weekly.yml
 ```

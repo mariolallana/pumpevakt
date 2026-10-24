@@ -1,105 +1,90 @@
-# 04 · Alert engine (lean v2)
+# 04 · Alert engine (lean v3)
 
-All rules live in **one place**: `src/core/signals.ts`, pure functions tested with Vitest. Nothing is duplicated in SQL ([10](10-design-review.md) challenge 2).
+All rules live in **one place**, `src/core/signals.ts`: pure functions tested with Vitest. Nothing is duplicated in SQL.
 
-## 1. Market alarm (MVP, open data)
+Shared definitions:
+- **Area:** stations within 25 km of Oslo S (59.9111, 10.7528).
+- **Fresh price:** observed ≤ 6 h ago.
+- **Oslo level `L`:** median of fresh diesel prices in the area at the latest run. Evaluate only if `n_fresh ≥ 30`, otherwise skip (coverage guard).
+- **Daily level:** median of all `L` values that day, stored as `market_daily` series `oslo_diesel_median`.
 
-Inputs: the daily `wdi` series (NOK/L, [01 §2](01-data-sources.md#2-the-creative-unlock-the-wholesale-diesel-index-wdi)) and the weekly national pump average `national_diesel_nok_l`.
+## 1. Market-drop alarm (M2)
 
 ```
-today  = latest WDI value
-d5     = today − WDI 5 business days earlier
-ref30  = median(WDI over last 30 calendar days)
-
-market_drop  if d5 ≤ −T  and today ≤ ref30 − T/2
-market_rise  if d5 ≥ +T  and today ≥ ref30 + T/2
+B = median(daily level over the previous 14 days)
+alert if  B − L ≥ T_abs  and  (B − L) / B ≥ T_pct
+          and the same condition held in the previous run (≥ 30 min persistence)
 ```
 
-| Sensitivity | `T` (NOK/L of wholesale cost) | Rough pump equivalent (pass-through ≈ 1.1: 1.25 in theory with VAT, ~1.07 measured on monthly data) |
+| Sensitivity | `T_abs` | `T_pct` |
 |---|---|---|
-| relaxed | 0.90 | ~1.00 kr/L |
-| **normal** | **0.60** | **~0.65 kr/L** |
-| eager | 0.40 | ~0.45 kr/L |
+| relaxed | 1.50 | 6 % |
+| **normal** | **1.00** | **4 %** |
+| eager | 0.60 | 2.5 % |
 
-Both conditions are deliberately simple: a sharp recent move **and** a level that differs from the month. That filters out a bounce back after a spike. These thresholds are starting points. They get calibrated by:
-1. **Historical replay** (Phase 1 task): run the rule over 2015→today daily data. Target 4–10 alerts per year at `normal`. Check how often the national pump average moved the same way within 14 days. Record the hit rate here.
-2. **Shadow mode** (§4): 14 days live without sending.
+- **Cold start:** with fewer than 7 days of collected history, the alarm is off and `/status` shows "learning: 3/7 days". (Optional: seed history from WDI-adjusted SSB, but that's not needed. KISS.)
+- **WDI context line** (information only): "Wholesale cost −0.71 in 5 days, so the drop may continue" or "Wholesale cost flat, so this may be a price war or a tax change".
+- **Intraday caveat:** Norwegian prices often jump around midday and drift down. Comparing against the 14-day median of *daily* medians smooths this out. If shadow mode shows evening-only false alerts, compare against the same hour band instead (an advanced option, parked).
+- **Dedupe:** `market_drop:{oslo_date}`. A second one the same day only if `L` falls another `T_abs/2`.
 
-**Confirmation line** (information only, never a gate): when the latest weekly national pump average moved the same way, add "✅ Pump prices already following (national avg −0.42 this week)".
+## 2. Cheap-station alarm (M3)
 
-**Tax/fee detector:** if the national average moved > 1.00 kr/L in a week while |WDI change| < 0.30, send one `system` info message: "Pump prices jumped without a market move. Likely a tax or margin change." It is not a buy signal.
-
-**De-duplication:** `dedupe_key = market_{drop|rise}:{ISO week}`. A second alert in the same week happens only if the move extends by another `T` (key suffix `:2`). A change of direction is always allowed.
-
-## 2. Cheap-station (outlier) alarm: gated until station data exists
-
-Runs after each station-price job, for each price observed in the last 3 h within 15 km of Home:
+For each station with a fresh price in the area:
 
 ```
-ref  = median(prices ≤ 24 h old within 10 km)   if at least 5 of them,
-       otherwise the latest national average (OpenVan)
-dev  = ref − price
-alert if dev ≥ max(1.50, 6 % × ref)
+neighbours = other fresh stations within 5 km (need ≥ 5, otherwise widen to 10 km)
+M          = median(neighbours)
+alert if  M − price ≥ max(D_abs, D_pct × M)
 ```
 
-- Plausibility: reject `price < 0.6 × national average` (a typo).
-- Dedupe: `outlier:{station}:{fuel}:{oslo_date}`. Re-alert the same day only if the price drops another ≥ 0.50.
-- The more advanced version (robust z-score against neighbours, hour-of-week baseline) from v1 of these specs is **parked** until we have ≥ 4 weeks of dense station data to justify it.
+| Sensitivity | `D_abs` | `D_pct` |
+|---|---|---|
+| relaxed | 2.00 | 8 % |
+| **normal** | **1.50** | **6 %** |
+| eager | 1.00 | 4 % |
 
-## 3. Net saving (used by `/near`)
+- **Distance filter:** only stations within `OUTLIER_RADIUS_KM` (default 15) of Home.
+- **Plausibility:** ignore `price < 0.6 × L` (a typo) and `fd_price` (tax-free diesel).
+- **Dedupe:** `outlier:{station}:{oslo_date}`. Re-alert the same day only if the price drops another ≥ 0.50.
+- **Revalidate before sending** (e.g. after quiet hours). If the price has gone back up, drop the alert.
+
+## 3. Net saving (used by `/near` and alerts)
 
 ```
-detour_km   = 2 × straight_line_km × 1.3
-net_saving  = (ref − price) × TANK_L − detour_km × CONSUMPTION_L100 / 100 × price
+detour_km  = 2 × straight_line_km × 1.3
+net_saving = (L − price) × TANK_L − detour_km × CONSUMPTION_L100 / 100 × price
 ```
-Shown as "save ~62 kr *if you go there just to fill up*". It's an upper bound on the detour cost, labelled honestly.
+Labelled "save ~62 kr *if you go there just to fill up*".
 
-## 4. Shadow mode & feedback
+## 4. Shadow mode, feedback, delivery
+- The first 14 days run in **shadow mode**: alerts are logged, not pushed. A daily 18:00 digest shows "would have sent …" with 👍/👎. `/shadow off` goes live.
+- Quiet hours 22–07 (Oslo): hold alerts, revalidate, then send. At most 3 pushes a day. `/mute 24h`.
+- Three 👎 in 30 days → the bot suggests a lower sensitivity. It never changes it silently.
 
-- `settings.shadow = on` for the first 14 days. Alerts are stored with `shadow=1` and not pushed. A daily 18:00 digest lists "would have sent: …" with 👍/👎 buttons.
-- `/shadow off` goes live. Every real alert carries 👍/👎. Three 👎 within 30 days → the bot suggests a lower sensitivity (it never changes it silently).
+## 5. Templates
 
-## 5. Delivery rules
-
-- Quiet hours (`QUIET_HOURS`, default 22–07 Oslo): hold messages until the end of quiet hours. Market alerts still matter in the morning, but outlier alerts are re-checked first and dropped if the price has moved.
-- `/mute 24h` sets `settings.muted_until`.
-- At most 3 pushes per day. Extra alerts go into the next `/status`.
-
-## 6. Message templates
-
-**Market drop**
 ```
-📉 Diesel market falling: wait if you can
-Wholesale cost 10.42 kr/L, −0.71 in 5 days (30-day median 11.20)
-Pump prices typically follow within days (backtest: same direction 79 % of big moves).
-✅ National pump avg already −0.38 this week (27.22 → 26.84)
-Brent $108 · USD/NOK 9.35
-[📊 Status]  [👍] [👎]  [🔕 Mute 24h]
+📉 Diesel is cheap around Oslo right now
+Oslo median 23.21 kr/L, 14-day normal 24.40 (−1.19, −4.9 %)
+Wholesale cost also −0.52 in 5 days, so it may fall a bit more.
+Best near Home:
+1. Uno-X Linderud Nord  22.87 · 2.1 km · 40 min ago · save ~68 kr
+2. Esso Alna            23.02 · 3.0 km · 1 h ago · save ~58 kr
+[⛽ Near me] [👍] [👎] [🔕 24h]
 ```
-
-**Market rise**
 ```
-📈 Diesel market rising: fill up soon
-Wholesale cost 11.90 kr/L, +0.82 in 5 days. Pumps usually follow within days.
-[⛽ Near me]  [👍] [👎]
+💥 Uno-X Nedre Bekkelaget: diesel 22.85
+1.62 below nearby stations (median 24.47) · 3 h ago · 4.2 km from Home
+Save ~78 kr if you go there just to fill up
+[🧭 Navigate] [👍] [👎]
 ```
+Footer on every message: "Prices: drivstoffapp.no · Market: FRED, Norges Bank".
 
-**Outlier (gated)**
-```
-💥 Uno-X Ryen: diesel 19.49
-2.10 below nearby (median 21.59) · seen 14 min ago · 4.2 km from Home
-Save ~96 kr if you go there just to fill up
-[🧭 Navigate]  [👍] [👎]
-```
-
-Every message footer: "Data: FRED, Norges Bank, OpenVan · stations © Drivstoffpriser/OSM (ODbL)".
-
-## 7. Test fixtures (`test/fixtures/`, required before shadow mode ends)
-
-1. Flat WDI ±0.1 noise for 90 days → 0 alerts.
-2. WDI −0.8 over 5 days from a flat level → exactly 1 `market_drop`. It stays low for 3 weeks → no repeat (weekly dedupe only re-fires if it extends by `T`).
-3. A spike +1.0 then back down to the old level → 1 `market_rise` and **no** `market_drop` (because of the `ref30` condition).
-4. National +1.2 in a week with flat WDI → 1 `system` tax-change info.
-5. Outlier: 6 nearby reports at 21.5 and one at 19.8 → 1 alert. With only 2 nearby reports, the national fallback is used.
-6. Typo price 2.19 → rejected.
-7. Quiet hours: an alert at 23:00 is delivered at 07:00. A muted bot sends nothing.
+## 6. Test fixtures (required before `/shadow off`)
+1. Flat Oslo prices ±0.2 noise for 30 days → 0 alerts.
+2. Daily midday +1.5 jump then drift down → 0 market alerts.
+3. Area-wide −1.2 drop lasting 2 runs → exactly 1 market alert. A drop lasting only 1 run → 0.
+4. One station −1.8 vs 8 neighbours → 1 outlier alert. Only 3 neighbours within 10 km → no alert.
+5. Price 2.19 → rejected. `fd_price` is never used.
+6. `n_fresh = 20` → no evaluation.
+7. An alert at 23:00 whose price is back up by 07:00 → not sent.

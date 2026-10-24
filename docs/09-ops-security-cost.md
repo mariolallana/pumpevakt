@@ -19,15 +19,14 @@ Weekly `wrangler d1 export` → GitHub Actions artifact (90 days). Restore = `wr
 - Dependabot for npm and Actions.
 
 ## Legal & attribution
-- Station data © Drivstoffpriser contributors and OpenStreetMap contributors, **ODbL**. Attribute in bot footers and the dashboard. Share-alike applies only if we publish a derived database.
-- SSB: CC BY 4.0. Norges Bank, FRED (public domain series), OpenVan (public API): attribute.
+- Station prices: drivstoffapp.no public API (no published terms). Attribute in every message, poll gently (≤ 150 requests/day), use only unauthenticated read endpoints. If they ever publish terms or ask us to stop, comply, and fall back to the market alarms on FRED/Norges Bank.
+- Map tiles © OpenStreetMap contributors (ODbL).
+- SSB: CC BY 4.0. Norges Bank and FRED (public domain series): attribute.
 - No scraping of private APIs. See the rule in [01](01-data-sources.md).
 
 ## Cost
 | Item | Monthly |
 |---|---|
 | Cloudflare Workers + D1 + Pages, GitHub, Telegram, all data sources | **0 NOK** |
-| Google Places (only if the probe passes) | 0 within the free cap. Set a **budget alert at $1** |
-| Photo extraction (later) | ~0–5 NOK |
 
 Scale triggers: Worker CPU errors → move the job to Actions or the $5 Workers plan. More than 10 users → revisit auth.

@@ -11,7 +11,6 @@
 | Tests | **Vitest** (with `@cloudflare/vitest-pool-workers` only if testing the Worker itself, plain Vitest for `src/core`) |
 | CLI and deploy | **Wrangler** + GitHub Actions |
 | Phase 4 web | **Vite + React**, Tailwind v4, shadcn/ui, MapLibre GL + OpenFreeMap, Recharts, on **Cloudflare Pages** |
-| Later: photo prices | Claude Haiku 5.5 (`claude-haiku-5-5`) vision. Cents a month, needs an Anthropic API key |
 
 Dependencies are deliberately few: `grammy`, `wrangler`, `vitest`, `typescript`. Everything else uses `fetch` and the standard library.
 
@@ -30,8 +29,6 @@ Dependencies are deliberately few: `grammy`, `wrangler`, `vitest`, `typescript`.
 |---|---|
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_WEBHOOK_SECRET` | `wrangler secret put` |
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | GitHub Actions secrets (deploy, weekly) |
-| `GOOGLE_MAPS_API_KEY` | Only if the Places probe passes |
-| `ANTHROPIC_API_KEY` | Only for photo prices (later) |
 
 Config that isn't secret (home, fuel, tank, sensitivity, allowed chat IDs) lives in `wrangler.toml` `[vars]`.
 

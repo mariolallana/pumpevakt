@@ -1,5 +1,18 @@
 # 10 · Design review log
 
+## v3 (2026-10-24): open endpoints only, no partners
+
+| Decision | Why |
+|---|---|
+| **Primary station prices = public, keyless `backend.drivstoffapp.no` API** | Found via an open-source Home Assistant integration (oko-fuel). Tested: 95 of 100 Oslo stations had a diesel price < 24 h old, 57 < 6 h |
+| Dropped partnership emails, Google Places probe, `/p` crowd reports, photo OCR | User constraint: open endpoints only, no partners, keep it simple. Station data no longer needs crowdsourcing |
+| Gates removed: best deal near me + cheap-station alarm are back in the MVP | The data exists |
+| Market-drop alarm driven by the **real Oslo median vs its 14-day history** (the original wish). WDI is demoted to a context/early-warning line | Real data beats a proxy. WDI still explains *why* (market vs tax/price war) |
+| Station table is upserted from the price API response. No separate import job | One less moving part |
+| New risk: drivstoffapp.no has no published terms or SLA | Poll gently, attribute, fixture-tested adapter, failure ping. If it goes away, market context (FRED/Norges Bank) keeps working, and the ODbL Drivstoffpriser data is a fallback |
+
+## v2: original challenges
+
 A senior-engineer review of specs v1 (2026-10-24), and how v2 resolves each challenge. Keep adding to this log when decisions change.
 
 | # | Challenge | Severity | Resolution in v2 | Where |
