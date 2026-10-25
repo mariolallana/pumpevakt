@@ -15,9 +15,12 @@ const L = 36; // left gutter for y labels
 const R = 8;
 const AM = '#3b7dd8';
 const PM = 'var(--pricey)';
+const EST = 'var(--ink-muted)';
+const EST_ERROR = '3–5'; // kr, keep in step with ESTIMATE_ERROR_NOK in src/core/estimate.ts
 
 type Spread = OutlookResponse['spread'][number];
 type Q = NonNullable<Spread['am']>;
+type Est = NonNullable<OutlookResponse['estimate']>;
 
 const fmtDay = (day: string, opts: Intl.DateTimeFormatOptions) => new Date(`${day}T12:00:00Z`).toLocaleDateString('en-GB', { timeZone: 'UTC', ...opts });
 
@@ -52,6 +55,8 @@ export function HistoryChart({ outlook, fuel }: { outlook: OutlookResponse | nul
   const sel = picked ?? latestDay;
   const selSpread = byDay.get(sel);
   const selWdi = [...wdi].reverse().find((w) => w.day <= sel);
+  const est = fuel === 'diesel' && outlook.estimate && outlook.estimate.points.length > 0 ? outlook.estimate : null;
+  const selEst = est?.points.find((p) => p.day === sel);
   const today = osloToday();
 
   return (
@@ -67,9 +72,14 @@ export function HistoryChart({ outlook, fuel }: { outlook: OutlookResponse | nul
           <Swatch color={PM} /> Afternoon 15–24, after it
         </span>
         <span>bar = middle 50 % of stations · dot = median</span>
+        {est && (
+          <span>
+            <DashSwatch /> Rough estimate from wholesale (±{EST_ERROR} kr), before recording began
+          </span>
+        )}
       </p>
 
-      <PumpChart days={days} byDay={byDay} sel={sel} onPick={setPicked} />
+      <PumpChart days={days} byDay={byDay} est={est} sel={sel} onPick={setPicked} />
       {wdi.length >= 2 && <WholesaleChart days={days} wdi={wdi} sel={sel} onPick={setPicked} />}
 
       <div className="mt-2 rounded-lg bg-bg px-2.5 py-2 text-xs" aria-live="polite">
@@ -82,6 +92,13 @@ export function HistoryChart({ outlook, fuel }: { outlook: OutlookResponse | nul
             {selSpread.am && <QLine label="Morning" color={AM} q={selSpread.am} />}
             {selSpread.pm && <QLine label="Afternoon" color={PM} q={selSpread.pm} />}
           </>
+        ) : selEst ? (
+          <p>
+            <DashSwatch /> Rough estimate <span className="num font-semibold">≈ {price2(selEst.value)}</span>{' '}
+            <span className="text-muted">
+              (wholesale + typical gap {price2(est!.gap)} kr; can be off by {EST_ERROR} kr, not a recorded price)
+            </span>
+          </p>
         ) : (
           <p className="text-muted">{sel < RECORDING_SINCE ? 'Before Pumpevakt started recording.' : 'Too few stations reported (needs 10 per window).'}</p>
         )}
@@ -94,9 +111,17 @@ export function HistoryChart({ outlook, fuel }: { outlook: OutlookResponse | nul
       </div>
       <p className="mt-1.5 text-[11px] text-muted">
         Tap a day for its numbers. Pump history starts {fmtDay(RECORDING_SINCE, { day: 'numeric', month: 'short' })}, when Pumpevakt began
-        recording; earlier days are shaded.
+        recording; earlier days are shaded{est ? ' and show a rough estimate, which is never used for advice or alarms' : ''}.
       </p>
     </section>
+  );
+}
+
+function DashSwatch() {
+  return (
+    <svg aria-hidden="true" width="12" height="6" className="mr-0.5 inline-block align-middle">
+      <line x1="0" y1="3" x2="12" y2="3" stroke={EST} strokeWidth="1.5" strokeDasharray="3 2" />
+    </svg>
   );
 }
 
@@ -157,8 +182,8 @@ function YGrid({ ticks, y, digits }: { ticks: number[]; y: (v: number) => number
   );
 }
 
-/** Days before RECORDING_SINCE: hatched, with a label when wide enough. */
-function NotRecorded({ days, top, bottom }: { days: string[]; top: number; bottom: number }) {
+/** Days before RECORDING_SINCE: hatched, with a label when wide enough (and no estimate is drawn over it). */
+function NotRecorded({ days, top, bottom, label }: { days: string[]; top: number; bottom: number; label: boolean }) {
   const n = days.filter((d) => d < RECORDING_SINCE).length;
   if (n === 0) return null;
   const w = n * SLOT;
@@ -170,7 +195,7 @@ function NotRecorded({ days, top, bottom }: { days: string[]; top: number; botto
         </pattern>
       </defs>
       <rect x={L} y={top} width={w} height={bottom - top} fill="url(#hatch)" opacity={0.7} />
-      {w > 90 && (
+      {label && w > 90 && (
         <text x={L + w / 2} y={(top + bottom) / 2 + 3} textAnchor="middle" fontSize={10} fill="var(--ink-muted)">
           not recorded yet
         </text>
@@ -179,7 +204,7 @@ function NotRecorded({ days, top, bottom }: { days: string[]; top: number; botto
   );
 }
 
-function PumpChart({ days, byDay, sel, onPick }: { days: string[]; byDay: Map<string, Spread>; sel: string; onPick: (d: string) => void }) {
+function PumpChart({ days, byDay, est, sel, onPick }: { days: string[]; byDay: Map<string, Spread>; est: Est | null; sel: string; onPick: (d: string) => void }) {
   const H = 150;
   const T = 6;
   const B = H - 16;
@@ -187,8 +212,9 @@ function PumpChart({ days, byDay, sel, onPick }: { days: string[]; byDay: Map<st
   if (qs.length === 0) {
     return <p className="mt-2 text-sm text-muted">No daily pump history yet: a window needs at least 10 stations reporting.</p>;
   }
-  let lo = Math.min(...qs.map((q) => q.p25));
-  let hi = Math.max(...qs.map((q) => q.p75));
+  const estPts = (est?.points ?? []).map((p) => ({ i: days.indexOf(p.day), v: p.value, day: p.day })).filter((p) => p.i >= 0);
+  let lo = Math.min(...qs.map((q) => q.p25), ...estPts.map((p) => p.v));
+  let hi = Math.max(...qs.map((q) => q.p75), ...estPts.map((p) => p.v));
   const pad = Math.max(0.3, (2 - (hi - lo)) / 2); // at least a 2 kr window so one day isn't blown up
   lo -= pad;
   hi += pad;
@@ -207,9 +233,17 @@ function PumpChart({ days, byDay, sel, onPick }: { days: string[]; byDay: Map<st
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 w-full select-none" role="img" aria-label="Daily pump price range, morning and afternoon, last 30 days">
-      <NotRecorded days={days} top={T} bottom={B} />
+      <NotRecorded days={days} top={T} bottom={B} label={estPts.length === 0} />
       <YGrid ticks={niceTicks(lo, hi, 4)} y={y} digits={0} />
       <XAxis days={days} top={T} bottom={B} sel={sel} onPick={onPick} labels />
+      {estPts.length > 1 && (
+        <g pointerEvents="none">
+          <polyline points={estPts.map((p) => `${x(p.i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ')} fill="none" stroke={EST} strokeWidth={1.3} strokeDasharray="3 2" />
+          {estPts.map((p) => (
+            <circle key={`est-${p.day}`} cx={x(p.i)} cy={y(p.v)} r={p.day === sel ? 2.6 : 1.4} fill="var(--surface)" stroke={EST} strokeWidth={1} />
+          ))}
+        </g>
+      )}
       {(['am', 'pm'] as const).map((w) =>
         series(w).map((s, i) => <polyline key={`${w}${i}`} points={s.join(' ')} fill="none" stroke={w === 'am' ? AM : PM} strokeWidth={1} opacity={0.6} pointerEvents="none" />),
       )}
@@ -271,9 +305,9 @@ function WholesaleChart({ days, wdi, sel, onPick }: { days: string[]; wdi: Outlo
         {gap >= 2 && (
           <g pointerEvents="none">
             <rect x={x(last.i) + SLOT / 2} y={T} width={gap * SLOT} height={B - T} fill="color-mix(in srgb, var(--ink) 4%, transparent)" />
-            {gap * SLOT > 40 && (
+            {gap * SLOT > 32 && (
               <text x={x(last.i) + SLOT / 2 + (gap * SLOT) / 2} y={T + 10} textAnchor="middle" fontSize={8.5} fill="var(--ink-muted)">
-                not published yet
+                {gap * SLOT > 75 ? 'not published yet' : 'pending'}
               </text>
             )}
           </g>

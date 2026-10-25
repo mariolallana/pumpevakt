@@ -74,6 +74,8 @@ export interface OutlookResponse {
   /** Per day: p25/p50/p75 across stations, morning (06–12, before the daily rise) and afternoon (15–24, after). */
   spread: Array<{ day: string; am?: { p25: number; p50: number; p75: number }; pm?: { p25: number; p50: number; p75: number } }>;
   wdi: Array<{ day: string; value: number }>;
+  /** Rough pump estimate (wholesale + typical gap) for days before recording began; display only. */
+  estimate: { gap: number; nCal: number; points: Array<{ day: string; value: number }> } | null;
 }
 
 /** Fuels the outlook covers (enough reports for chain levels and rise detection). */
