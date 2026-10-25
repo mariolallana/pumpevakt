@@ -7,6 +7,7 @@ import { osloDate } from './core/time';
 import { WDI_SERIES } from './core/wdi';
 import { amLevels, amSeries, CHAIN_FUELS, GROUPS, type ChainFuel, type Group } from './core/chains';
 import { daySpread, QUANTILES, spreadSeries, WINDOWS, type SpreadWindow } from './core/dailySpread';
+import { estimatePump, type PumpEstimate } from './core/estimate';
 import { norm, verdict, type Norm, type Verdict } from './core/outlook';
 import type { Rise } from './core/rise';
 import { brandedReportsSince, latestOkPricesRun, latestStationPrices, marketSeries, marketSeriesMany } from './db';
@@ -47,6 +48,8 @@ export interface OutlookResponse {
   spread: Array<{ day: string } & Partial<Record<SpreadWindow, SpreadQ>>>;
   /** Official wholesale diesel cost, NOK/L (FRED ULSD × Norges Bank); empty for petrol. */
   wdi: Array<{ day: string; value: number }>;
+  /** Rough pump estimate (WDI + gap) for the chart days before the first recorded day; null for petrol or without calibration. Display only. */
+  estimate: PumpEstimate | null;
 }
 
 export interface SpreadQ {
@@ -56,6 +59,7 @@ export interface SpreadQ {
 }
 
 export const OUTLOOK_DAYS = 30;
+const WDI_LOOKBACK_DAYS = 7; // extra WDI history so the first chart days (often a weekend) carry a trading-day value
 const WINDOW_KEYS = Object.keys(WINDOWS) as SpreadWindow[];
 const SPREAD_KEYS = WINDOW_KEYS.flatMap((w) => QUANTILES.map((q) => ({ w, q })));
 
@@ -146,13 +150,15 @@ export async function outlookHandler(url: URL, env: Env, now = new Date()): Prom
   if (!CHAIN_FUELS.includes(fuel)) throw new BadInput(`fuel must be one of ${CHAIN_FUELS.join(', ')}`);
   const today = osloDate(now);
   const since = osloDate(new Date(now.getTime() - (OUTLOOK_DAYS - 1) * 86_400_000));
-  const [run, points, reports, wdi] = await Promise.all([
+  const wdiSince = osloDate(new Date(now.getTime() - (OUTLOOK_DAYS - 1 + WDI_LOOKBACK_DAYS) * 86_400_000));
+  const [run, points, reports, wdiAll] = await Promise.all([
     latestOkPricesRun(env.DB),
     marketSeriesMany(env.DB, [...GROUPS.map((g) => amSeries(g, fuel)), ...SPREAD_KEYS.map(({ w, q }) => spreadSeries(w, q, fuel))], since),
     // Today's morning levels are computed live; earlier days come from the market job.
     brandedReportsSince(env.DB, new Date(now.getTime() - 26 * 3_600_000).toISOString()),
-    fuel === 'diesel' ? marketSeries(env.DB, WDI_SERIES, since) : Promise.resolve([]),
+    fuel === 'diesel' ? marketSeries(env.DB, WDI_SERIES, wdiSince) : Promise.resolve([]),
   ]);
+  const wdi = wdiAll.filter((w) => w.day >= since);
   const live = [...amLevels(reports, today), ...daySpread(reports, today)];
   const stored = points.filter((x) => x.day !== today);
   const spreadByDay = new Map<string, Record<string, number>>(); // day → { 'am25': …, 'pm75': … }
@@ -191,6 +197,14 @@ export async function outlookHandler(url: URL, env: Env, now = new Date()): Prom
     history,
     spread,
     wdi,
+    estimate:
+      fuel === 'diesel'
+        ? estimatePump(
+            spread,
+            wdiAll,
+            Array.from({ length: OUTLOOK_DAYS }, (_, i) => osloDate(new Date(now.getTime() - (OUTLOOK_DAYS - 1 - i) * 86_400_000))),
+          )
+        : null,
   };
 }
 
